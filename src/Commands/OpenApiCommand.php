@@ -545,7 +545,10 @@ class OpenApiCommand extends Command
 
             $this->line($formatted);
         } else {
-            // Not valid JSON - output raw body
+            // Not valid JSON - show notice with content-type and output raw body
+            $contentType = $response->header('Content-Type') ?: 'unknown';
+            $this->line("Response is not JSON (content-type: {$contentType})");
+            $this->line('');
             $this->line($body);
         }
     }

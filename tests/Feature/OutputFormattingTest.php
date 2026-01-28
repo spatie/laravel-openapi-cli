@@ -128,7 +128,8 @@ it('outputs raw body for non-JSON responses (HTML)', function () {
     $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
 
     $this->artisan('test-api html-response')
-        ->expectsOutput('<html><body>Hello World</body></html>')
+        ->expectsOutputToContain('Response is not JSON (content-type: text/html)')
+        ->expectsOutputToContain('<html><body>Hello World</body></html>')
         ->assertSuccessful();
 });
 
@@ -141,7 +142,8 @@ it('outputs raw body for non-JSON responses (plain text)', function () {
     $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
 
     $this->artisan('test-api plain-text')
-        ->expectsOutput('This is plain text content')
+        ->expectsOutputToContain('Response is not JSON (content-type: text/plain)')
+        ->expectsOutputToContain('This is plain text content')
         ->assertSuccessful();
 });
 
@@ -154,7 +156,8 @@ it('outputs raw body for invalid JSON', function () {
     $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
 
     $this->artisan('test-api projects')
-        ->expectsOutput('{"invalid": json content}')
+        ->expectsOutputToContain('Response is not JSON (content-type: application/json)')
+        ->expectsOutputToContain('{"invalid": json content}')
         ->assertSuccessful();
 });
 
@@ -337,7 +340,8 @@ it('outputs raw body for non-JSON responses even with --minify flag', function (
     $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
 
     $this->artisan('test-api html-response --minify')
-        ->expectsOutput('<html><body>Hello</body></html>')
+        ->expectsOutputToContain('Response is not JSON (content-type: text/html)')
+        ->expectsOutputToContain('<html><body>Hello</body></html>')
         ->assertSuccessful();
 });
 
