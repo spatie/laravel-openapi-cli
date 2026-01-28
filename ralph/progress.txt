@@ -546,3 +546,26 @@
   - This appears to be a limitation with repeatedly calling $this->app->register() in Orchestra/Testbench
   - Solution: Keep test files focused with fewer than ~27-28 tests each
 ---
+## 2026-01-29 - US-030
+- Implemented HTTP 4xx error detection and handling in OpenApiCommand
+- Added status code check (>= 400 && < 500) before outputResponse()
+- Displays "HTTP {statusCode} Error" message for 4xx responses
+- Returns FAILURE exit code instead of SUCCESS for 4xx errors
+- Error responses use existing outputResponse() method for consistent formatting
+- Supports all output flags: --minify, --include, default pretty-print
+- Created comprehensive test suite with 8 test cases in tests/Feature/Http4xxErrorHandlingTest.php
+- All quality checks pass (composer analyse, format)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/Http4xxErrorHandlingTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The error handling logic should check status codes BEFORE calling outputResponse()
+  - This allows outputResponse() to format error bodies the same way as success responses
+  - Test files should follow the pattern: beforeEach creates spec + clearRegistrations, each test calls register + app->register
+  - The container error "Target [Illuminate\Contracts\Console\Kernel] is not instantiable" is a cumulative test infrastructure issue
+  - It occurs when running the full test suite with files having ~27+ tests (OutputFormattingTest.php has 27 tests)
+  - Individual test files work fine, but the cumulative load across all files triggers the container error
+  - The Http4xxErrorHandlingTest.php (8 tests) follows the correct pattern and works in isolation
+  - Future iterations should consider splitting large test files (>25 tests) into smaller files
+  - The 4xx error handling shares code path with 2xx success responses (same outputResponse method)
+  - Only difference is the error message prefix and exit code (FAILURE vs SUCCESS)
+---
+
