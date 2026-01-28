@@ -1,0 +1,814 @@
+{
+  "project": "Laravel OpenAPI CLI",
+  "branchName": "ralph/openapi-cli-package",
+  "description": "Laravel package providing artisan commands for executing HTTP requests defined in OpenAPI specifications",
+  "userStories": [
+    {
+      "id": "US-043",
+      "title": "Dependencies & Composer Configuration",
+      "description": "As a developer, I need to add required dependencies so all features work.",
+      "acceptanceCriteria": [
+        "Add `symfony/yaml` to composer.json require section",
+        "Run `composer update`",
+        "Verify all dependencies install correctly",
+        "Run `composer validate`",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-001",
+      "title": "Package Foundation & Structure",
+      "description": "As a developer, I need the package to maintain Spatie's standard package structure so it integrates seamlessly with Laravel.",
+      "acceptanceCriteria": [
+        "Verify directory structure exists (src/, tests/, config/)",
+        "OpenApiCliServiceProvider extends PackageServiceProvider",
+        "Facade pattern exists in src/Facades/",
+        "Pint, PHPStan, and Pest configurations work",
+        "All composer scripts (test, analyse, format) work",
+        "Package namespace is `Spatie\\OpenApiCli`",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "OpenAPI Parser - YAML Support",
+      "description": "As a developer, I need to parse YAML OpenAPI spec files so I can register them as commands.",
+      "acceptanceCriteria": [
+        "Create `OpenApiParser` class in `src/`",
+        "Parse YAML files using `symfony/yaml`",
+        "Extract paths with their HTTP methods",
+        "Extract operation summaries and descriptions",
+        "Extract path parameters with types",
+        "Extract request body schemas",
+        "Extract `servers[0].url` as default base URL",
+        "Handle specs without servers array gracefully",
+        "Support OpenAPI 3.x only",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "OpenAPI Parser - JSON Support",
+      "description": "As a developer, I need to parse JSON OpenAPI spec files so I can support both common spec formats.",
+      "acceptanceCriteria": [
+        "Parse JSON files using native `json_decode`",
+        "Auto-detect format based on file extension",
+        "Same extraction capabilities as YAML parser",
+        "Throw clear error for invalid JSON",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Internal $ref Resolution",
+      "description": "As a developer, I need the parser to resolve internal `$ref` pointers so that schema definitions are fully accessible.",
+      "acceptanceCriteria": [
+        "Create `RefResolver` class in `src/`",
+        "Resolve simple refs like `$ref: '#/components/schemas/User'`",
+        "Resolve nested refs (refs within resolved objects)",
+        "Handle refs in arrays",
+        "Handle refs in request bodies",
+        "Implement JSON pointer lookup (split on '/', navigate object)",
+        "Return original value when no ref present",
+        "Throw descriptive error on invalid ref pointer",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Path Matcher - Pattern Conversion",
+      "description": "As a developer, I need to convert OpenAPI path templates to regex patterns so I can match user input against spec paths.",
+      "acceptanceCriteria": [
+        "Create `PathMatcher` class in `src/`",
+        "Convert `/projects/{id}` to `/projects/(?P<id>[^/]+)`",
+        "Convert `/projects/{projectId}/errors/{errorId}` to regex with named groups",
+        "Handle multiple path parameters correctly",
+        "Escape special regex characters in static path segments",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Path Matcher - User Input Matching",
+      "description": "As a developer, I need to match user input against all spec paths so the correct endpoint is identified.",
+      "acceptanceCriteria": [
+        "Match simple paths: `/projects` matches input `projects`",
+        "Match paths with parameters: `/projects/{id}` matches `projects/123`",
+        "Extract named parameters from matches",
+        "Handle leading slashes equivalently (`/projects` and `projects`)",
+        "Handle trailing slashes equivalently (`projects/` and `projects`)",
+        "Return HTTP methods available for matched path",
+        "Prioritize exact matches over parameterized matches",
+        "When multiple paths match, return all matches",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Ambiguous Path Resolution",
+      "description": "As a user, when my input matches multiple OpenAPI paths, I want to see all possible matches with a clear error so I can specify which one I meant.",
+      "acceptanceCriteria": [
+        "Detect when input matches multiple spec paths",
+        "Display error message listing all matching paths",
+        "Show HTTP methods available for each matching path",
+        "Suggest using `--method` flag to disambiguate",
+        "Show example: `php artisan api-name endpoint --method POST`",
+        "Exit with error code when ambiguous",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Command Registration System",
+      "description": "As a developer, I need to register OpenAPI specs as artisan commands so users can interact with the API from CLI.",
+      "acceptanceCriteria": [
+        "Create static `register()` method on main `OpenApiCli` class",
+        "Accept spec file path and command signature",
+        "Create dynamic artisan command with given signature",
+        "Store registrations in service provider",
+        "Return fluent configuration object for chaining",
+        "Commands appear in `php artisan list`",
+        "Multiple specs can be registered with different command names",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Base URL Configuration",
+      "description": "As a developer, I need to override the base URL so I can use different environments (dev, staging, prod).",
+      "acceptanceCriteria": [
+        "Create `->baseUrl($url)` fluent method",
+        "Override spec's `servers[0].url` when provided",
+        "Use spec's server URL as fallback if not overridden",
+        "Throw error if no base URL available",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Authentication - Bearer Token",
+      "description": "As a developer, I need to configure Bearer token authentication so API requests are authenticated.",
+      "acceptanceCriteria": [
+        "Create `->bearer($token)` fluent method",
+        "Add `Authorization: Bearer {token}` header to requests",
+        "Support static token strings",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Authentication - API Key",
+      "description": "As a developer, I need to configure custom API key authentication so I can use APIs with non-standard auth headers.",
+      "acceptanceCriteria": [
+        "Create `->apiKey($headerName, $value)` fluent method",
+        "Add custom header to requests with specified name and value",
+        "Support any header name (e.g., `X-API-Key`, `Authorization`)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Authentication - Basic Auth",
+      "description": "As a developer, I need to configure HTTP Basic authentication so I can authenticate with username/password.",
+      "acceptanceCriteria": [
+        "Create `->basic($username, $password)` fluent method",
+        "Encode credentials as base64",
+        "Add `Authorization: Basic {encoded}` header to requests",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Authentication - Dynamic/Callable Auth",
+      "description": "As a developer, I need to configure dynamic authentication so I can fetch fresh tokens from cache or other sources on each request.",
+      "acceptanceCriteria": [
+        "Create `->auth(callable)` fluent method",
+        "Invoke callable on each request (not just once at registration)",
+        "Use returned value as Bearer token",
+        "Support closures and invokable objects",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Command Execution - GET Requests",
+      "description": "As a user, I want to execute GET requests to API endpoints by providing the path.",
+      "acceptanceCriteria": [
+        "Accept endpoint path as first argument",
+        "Default to GET method when no `--field` or `--method` provided",
+        "Match path against OpenAPI spec",
+        "Build full URL with base URL + path",
+        "Execute HTTP request using Laravel HTTP Client",
+        "Apply configured authentication",
+        "Output response body",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Command Execution - Path Parameters",
+      "description": "As a user, I want to provide path parameters inline so I can access specific resources.",
+      "acceptanceCriteria": [
+        "Extract path parameters from user input: `projects/123/errors/456`",
+        "Match against parameterized paths: `/projects/{projectId}/errors/{errorId}`",
+        "Substitute parameters into final URL",
+        "Validate all required path parameters are provided",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Command Execution - Query Parameters",
+      "description": "As a user, I want to add query parameters to requests so I can filter and paginate results.",
+      "acceptanceCriteria": [
+        "Add `--query` option to command",
+        "Parse query string format: `status=active&limit=10`",
+        "Append query parameters to URL",
+        "URL-encode parameter values",
+        "Support multiple parameters",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Command Execution - Explicit Method Override",
+      "description": "As a user, I want to explicitly specify HTTP method so I can execute DELETE, PUT, PATCH requests.",
+      "acceptanceCriteria": [
+        "Add `--method` option to command",
+        "Accept method names: GET, POST, PUT, PATCH, DELETE",
+        "Case insensitive: `--method delete` works",
+        "Override auto-detected method",
+        "Validate method is allowed for matched path in spec",
+        "Show error if method not defined for path in spec",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Command Execution - Form Fields (POST Data)",
+      "description": "As a user, I want to send form data in POST requests so I can create and update resources.",
+      "acceptanceCriteria": [
+        "Add `--field` option (can be used multiple times)",
+        "Parse format: `--field name=value`",
+        "Auto-detect POST method when `--field` is used",
+        "Send as form-data or JSON based on spec content-type",
+        "Support multiple fields: `--field name=Test --field team_id=1`",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Command Execution - JSON Input",
+      "description": "As a user, I want to send raw JSON bodies so I can submit complex nested data.",
+      "acceptanceCriteria": [
+        "Add `--input` option",
+        "Accept JSON string: `--input '{\"name\":\"Test\",\"data\":{\"nested\":true}}'`",
+        "Auto-detect POST method when `--input` is used",
+        "Validate JSON is valid before sending",
+        "Send with `Content-Type: application/json`",
+        "Override `--field` if both provided (or show error)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Command Execution - File Uploads",
+      "description": "As a user, I want to upload files using the @ prefix so I can submit multipart form data with files.",
+      "acceptanceCriteria": [
+        "Detect `@` prefix in field values: `--field file=@/path/to/file.txt`",
+        "Read file from filesystem",
+        "Use Laravel HTTP Client's `attach()` method",
+        "Send as multipart/form-data",
+        "Support multiple files",
+        "Mix file fields with regular fields",
+        "Show error if file path doesn't exist",
+        "Show error if file is not readable",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Endpoint Validation",
+      "description": "As a user, when I try to access an endpoint not in the spec, I want to see an error listing available endpoints.",
+      "acceptanceCriteria": [
+        "Reject requests to paths not defined in spec",
+        "Show error message: \"Endpoint not found in OpenAPI spec\"",
+        "List all available endpoints from spec",
+        "Include HTTP methods for each endpoint",
+        "Exit with non-zero code",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Discovery - List All Endpoints",
+      "description": "As a user, I want to list all available endpoints from the spec so I can discover what the API offers.",
+      "acceptanceCriteria": [
+        "Add `--list` flag to command",
+        "Output format: `GET     /projects                     List all projects`",
+        "Show HTTP method (left-aligned, fixed width)",
+        "Show path (middle column)",
+        "Show description from `summary` or `description` field",
+        "Sort endpoints logically (by path, then method)",
+        "Format as readable table",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Discovery - Output Full Schema",
+      "description": "As a user, I want to output the full OpenAPI spec as JSON so I can inspect it or pipe it to other tools.",
+      "acceptanceCriteria": [
+        "Add `--schema` flag to command",
+        "Output complete OpenAPI spec as JSON",
+        "Pretty-print by default (readable formatting)",
+        "Include all paths, components, schemas",
+        "Valid JSON output",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Discovery - Endpoint-Specific Help",
+      "description": "As a user, I want to see detailed help for a specific endpoint so I know what parameters and body it expects.",
+      "acceptanceCriteria": [
+        "Add `--help` flag (used with endpoint path)",
+        "Show HTTP method and path",
+        "Show endpoint description",
+        "List path parameters with types and required/optional",
+        "List request body schema when present",
+        "Show content-type for request body",
+        "Format example: `POST /projects/{projectId}/sourcemaps`",
+        "Work with parameterized paths: `projects/{id} --help`",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Output Formatting - Pretty JSON (Default)",
+      "description": "As a user, I want response JSON to be pretty-printed by default so it's readable in the terminal.",
+      "acceptanceCriteria": [
+        "Pretty-print JSON responses with indentation",
+        "Use JSON_PRETTY_PRINT flag",
+        "Show raw body for non-JSON responses",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Output Formatting - Minified JSON",
+      "description": "As a user, I want to minify JSON output for piping or compactness.",
+      "acceptanceCriteria": [
+        "Add `--minify` flag",
+        "Output JSON on single line",
+        "No extra whitespace",
+        "Still valid JSON",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Output Formatting - Include Response Headers",
+      "description": "As a user, I want to see response headers so I can debug and inspect API behavior.",
+      "acceptanceCriteria": [
+        "Add `--include` flag",
+        "Show HTTP status line: `HTTP/1.1 200 OK`",
+        "Show all response headers",
+        "Show headers before body",
+        "Separate headers from body with blank line",
+        "Format: `Header-Name: value`",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Output Formatting - Non-JSON Responses",
+      "description": "As a user, when an API returns non-JSON content, I want to see the raw body with content-type indication.",
+      "acceptanceCriteria": [
+        "Detect non-JSON content types",
+        "Show notice: `Response is not JSON (content-type: text/html)`",
+        "Output raw response body",
+        "Don't attempt to parse as JSON",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Output Formatting - Empty Responses",
+      "description": "As a user, when an API returns 204 No Content, I want graceful handling without errors.",
+      "acceptanceCriteria": [
+        "Detect 204 No Content responses",
+        "Show message: `No content (204)`",
+        "Don't attempt to parse body",
+        "Exit successfully",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Error Handling - HTTP 4xx Errors",
+      "description": "As a user, when a request fails with 4xx, I want to see the status code and response body.",
+      "acceptanceCriteria": [
+        "Detect 4xx status codes",
+        "Display status code in output",
+        "Display response body (often contains error details)",
+        "Exit with non-zero code",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Error Handling - HTTP 5xx Errors",
+      "description": "As a user, when a server error occurs, I want to see the status code and response.",
+      "acceptanceCriteria": [
+        "Detect 5xx status codes",
+        "Display status code in output",
+        "Display response body",
+        "Exit with non-zero code",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Error Handling - Network Errors",
+      "description": "As a user, when network issues occur, I want helpful error messages.",
+      "acceptanceCriteria": [
+        "Catch connection exceptions",
+        "Show message: `Network error: Could not connect to {url}`",
+        "Show underlying error message if available",
+        "Exit with non-zero code",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Error Handling - Invalid Spec Files",
+      "description": "As a developer, when an OpenAPI spec file is invalid, I want clear errors.",
+      "acceptanceCriteria": [
+        "Validate spec file exists",
+        "Validate spec file is readable",
+        "Validate YAML/JSON syntax",
+        "Show parsing errors with line numbers when available",
+        "Show message: `Invalid OpenAPI spec: {reason}`",
+        "Exit with non-zero code",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Test Suite - OpenAPI Parser Tests",
+      "description": "As a developer, I need comprehensive unit tests for the OpenAPI parser.",
+      "acceptanceCriteria": [
+        "Create `tests/Unit/OpenApiParserTest.php`",
+        "Test parsing YAML spec files correctly",
+        "Test parsing JSON spec files correctly",
+        "Test extracting paths with methods",
+        "Test extracting server URLs",
+        "Test handling specs without servers array",
+        "Test extracting operation summaries and descriptions",
+        "Test extracting path parameters with types",
+        "Test extracting request body schemas",
+        "Use `flare-api.yaml` as primary fixture",
+        "All tests pass (`composer test`)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Test Suite - Path Matcher Tests",
+      "description": "As a developer, I need comprehensive unit tests for path matching.",
+      "acceptanceCriteria": [
+        "Create `tests/Unit/PathMatcherTest.php`",
+        "Test matching simple paths: `/projects` matches `projects`",
+        "Test matching single parameter: `/projects/{id}` matches `projects/123`",
+        "Test matching multiple parameters",
+        "Test extracting named parameters correctly",
+        "Test rejecting paths not in spec",
+        "Test trailing slash equivalence",
+        "Test leading slash equivalence",
+        "Test returning correct HTTP methods for matched path",
+        "Test prioritizing exact matches over parameterized",
+        "All tests pass (`composer test`)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Test Suite - Ref Resolution and Authentication Tests",
+      "description": "As a developer, I need unit tests for $ref resolution and authentication.",
+      "acceptanceCriteria": [
+        "Create `tests/Unit/RefResolverTest.php`",
+        "Test resolving simple `$ref: '#/components/schemas/User'`",
+        "Test resolving nested refs",
+        "Test handling refs in arrays",
+        "Test handling refs in request bodies",
+        "Test returning original value when no ref present",
+        "Test throwing on invalid ref pointer",
+        "Create `tests/Unit/AuthenticationTest.php`",
+        "Test bearer token adds correct Authorization header",
+        "Test API key adds custom header correctly",
+        "Test basic auth encodes credentials correctly",
+        "Test callable auth invokes function and uses returned value",
+        "Test callable auth is invoked fresh on each request",
+        "All tests pass (`composer test`)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Test Suite - Command Registration and Discovery Tests",
+      "description": "As a developer, I need feature tests for command registration and discovery.",
+      "acceptanceCriteria": [
+        "Create `tests/Feature/CommandRegistrationTest.php`",
+        "Test command registers with specified signature",
+        "Test multiple specs register separate commands",
+        "Test command appears in artisan list",
+        "Test fluent methods are chainable",
+        "Test baseUrl override works",
+        "Test auth configuration persists",
+        "Create `tests/Feature/ListEndpointsTest.php`",
+        "Test `--list` outputs all endpoints from spec",
+        "Test output includes method, path, description",
+        "Test output is formatted in columns",
+        "Test endpoints are sorted logically",
+        "All tests pass (`composer test`)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Test Suite - Schema Output and Endpoint Help Tests",
+      "description": "As a developer, I need feature tests for schema output and endpoint help.",
+      "acceptanceCriteria": [
+        "Create `tests/Feature/SchemaOutputTest.php`",
+        "Test `--schema` outputs valid JSON",
+        "Test output contains all paths from spec",
+        "Test output contains components/schemas",
+        "Test `--schema --minify` outputs minified JSON",
+        "Create `tests/Feature/EndpointHelpTest.php`",
+        "Test `--help` with endpoint shows details",
+        "Test shows path parameters with types",
+        "Test shows request body schema when present",
+        "Test shows description when available",
+        "Test works with parameterized paths using braces",
+        "All tests pass (`composer test`)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Test Suite - Request Execution Tests",
+      "description": "As a developer, I need feature tests for request execution with HTTP mocking.",
+      "acceptanceCriteria": [
+        "Create `tests/Feature/RequestExecutionTest.php`",
+        "Test executes GET request to valid endpoint (use `Http::fake()`)",
+        "Test executes POST request when `--field` provided",
+        "Test executes explicit method with `--method`",
+        "Test sends query parameters with `--query`",
+        "Test sends JSON body with `--input`",
+        "Test sends form fields with `--field`",
+        "Test rejects request to endpoint not in spec",
+        "Test rejects request with method not allowed for endpoint",
+        "Test extracts path parameters and includes in request",
+        "Test applies bearer authentication",
+        "Test applies API key authentication",
+        "Test applies basic authentication",
+        "All tests use `Http::assertSent()` for verification",
+        "All tests pass (`composer test`)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Test Suite - Output Formatting and Error Handling Tests",
+      "description": "As a developer, I need feature tests for output formatting, file uploads, and error handling.",
+      "acceptanceCriteria": [
+        "Create `tests/Feature/OutputFormattingTest.php`",
+        "Test default output is pretty-printed JSON",
+        "Test `--minify` outputs minified JSON",
+        "Test `--include` shows response headers and status line",
+        "Test non-JSON response shows raw body with content-type notice",
+        "Test empty response (204) handled gracefully",
+        "Create `tests/Feature/FileUploadTest.php`",
+        "Test `--field file=@/path` triggers multipart upload",
+        "Test file contents sent correctly",
+        "Test multiple files can be uploaded",
+        "Test file field mixed with regular fields",
+        "Test non-existent file path shows helpful error",
+        "Create `tests/Feature/ErrorHandlingTest.php`",
+        "Test 4xx response shows error with status code",
+        "Test 5xx response shows error with status code",
+        "Test error response body displayed",
+        "Test network errors show helpful message",
+        "Test invalid spec file shows helpful error",
+        "Test missing spec file shows helpful error",
+        "All tests pass (`composer test`)",
+        "Typecheck passes (`composer analyse`)",
+        "Code formatting passes (`composer format`)"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Test Coverage Verification",
+      "description": "As a developer, I need to verify test coverage meets 90%+ threshold.",
+      "acceptanceCriteria": [
+        "Run `composer test-coverage`",
+        "Overall coverage is 90% or higher",
+        "Path matching logic has 95%+ coverage",
+        "OpenAPI parsing has 90%+ coverage",
+        "Authentication has 95%+ coverage",
+        "Output formatting has 85%+ coverage",
+        "Generate coverage report"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "README Documentation",
+      "description": "As a package user, I need comprehensive README documentation following Spatie's structure.",
+      "acceptanceCriteria": [
+        "Update title and description",
+        "Keep all existing README sections (Support us, Installation, Usage, Testing, etc.)",
+        "Remove migrations section (not applicable)",
+        "Remove views section (not applicable)",
+        "Update Installation section with actual setup steps",
+        "Add comprehensive Usage section with registration examples",
+        "Show examples of all authentication methods",
+        "Show examples of all command usage patterns (GET, POST, --field, --query, etc.)",
+        "Show examples of discovery commands (--list, --schema, --help)",
+        "Include example of file upload",
+        "Document all available options/flags",
+        "Keep Testing section with `composer test`",
+        "Keep all footer sections (Changelog, Contributing, Security, Credits, License)"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

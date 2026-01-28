@@ -1,0 +1,51 @@
+# Laravel OpenAPI CLI - Progress Log
+
+## Codebase Patterns
+(Patterns will be added as they are discovered during implementation)
+
+---
+
+## 2026-01-28 - US-043
+- Added `symfony/yaml` ^7.0 dependency to composer.json
+- Verified all composer scripts work correctly (validate, analyse, format, test)
+- **Learnings for future iterations:**
+  - The package uses Spatie's laravel-package-tools structure
+  - All quality checks must pass before committing: `composer analyse`, `composer format`, and `composer test`
+  - Dependencies in composer.json must be in the `require` section, not `require-dev`
+  - Composer validation ensures the configuration file is correct
+---
+
+## 2026-01-28 - US-001
+- Verified and cleaned up package foundation structure
+- Confirmed directory structure exists (src/, tests/, config/)
+- Verified OpenApiCliServiceProvider extends PackageServiceProvider correctly
+- Verified Facade pattern exists in src/Facades/OpenApiCli.php
+- Removed unnecessary skeleton code from ServiceProvider (views, migrations, command)
+- All composer scripts work correctly (analyse, format, test)
+- Package namespace is properly set to Spatie\OpenApiCli
+- Files changed: src/OpenApiCliServiceProvider.php
+- **Learnings for future iterations:**
+  - The ServiceProvider should only include features the package actually uses (no views or migrations for this CLI package)
+  - The package skeleton includes many features that should be removed if not needed
+  - The Facade pattern is already properly set up using Laravel's standard Facade class
+  - All PHP files must use the `Spatie\OpenApiCli` namespace as defined in composer.json autoload
+---
+## 2026-01-28 - US-002
+- Created OpenApiParser class in src/OpenApiParser.php
+- Implemented YAML and JSON parsing support using Symfony YAML component
+- Added methods to extract paths, HTTP methods, operation summaries and descriptions
+- Added method to extract path parameters with their types (handles array types)
+- Added method to extract request body schemas
+- Added method to extract servers[0].url with graceful handling for missing/empty servers arrays
+- Created comprehensive unit tests (16 test cases) in tests/Unit/OpenApiParserTest.php
+- All quality checks pass (analyse, format, test)
+- Files changed: src/OpenApiParser.php, tests/Unit/OpenApiParserTest.php
+- **Learnings for future iterations:**
+  - Use sys_get_temp_dir().'/filename_'.uniqid().'.ext' for temp files in tests, not tempnam() (needs extension for file type detection)
+  - The OpenAPI spec uses lowercase HTTP method names as keys (get, post, put, patch, delete)
+  - Parameters with 'in: path' are path parameters; filter these from the parameters array
+  - The schema type can be an array in OpenAPI 3.1 (e.g., type: [integer, string]); use first element as primary type
+  - Request body schema is nested: requestBody.content.application/json.schema
+  - Always check for null/missing values when traversing nested OpenAPI spec structures
+  - Tests should use the flare-api.yaml fixture for realistic OpenAPI spec parsing
+---
