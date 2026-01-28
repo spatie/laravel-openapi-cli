@@ -49,3 +49,16 @@
   - Always check for null/missing values when traversing nested OpenAPI spec structures
   - Tests should use the flare-api.yaml fixture for realistic OpenAPI spec parsing
 ---
+## 2026-01-28 - US-003
+- Added comprehensive JSON parsing tests to verify JSON support (already implemented in US-002)
+- Verified auto-detection of format based on file extension (.yaml, .yml, .json)
+- Confirmed same extraction capabilities work for JSON as YAML
+- Confirmed clear error messages for invalid JSON syntax
+- All quality checks pass (analyse, format, test)
+- Files changed: tests/Unit/OpenApiParserTest.php
+- **Learnings for future iterations:**
+  - The OpenApiParser implementation in US-002 already included full JSON support via the parseFile/parseJson methods
+  - Using match() expression for file extension detection makes it easy to support multiple formats
+  - JSON_THROW_ON_ERROR flag ensures clear error messages for invalid JSON
+  - Tests should verify both YAML and JSON work identically for all extraction methods
+---
