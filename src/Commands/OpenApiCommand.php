@@ -71,8 +71,25 @@ class OpenApiCommand extends Command
         // Use the first (and only) match
         $match = $matches[0];
 
-        // Parse form fields if provided
-        $fields = $this->parseFields($this->option('field'));
+        // Parse form fields and file uploads if provided
+        $parseResult = $this->parseFields($this->option('field'));
+        $fields = $parseResult['fields'];
+        $files = $parseResult['files'];
+
+        // Validate file paths exist and are readable
+        foreach ($files as $fieldName => $filePath) {
+            if (! file_exists($filePath)) {
+                $this->error("File not found: {$filePath}");
+
+                return self::FAILURE;
+            }
+
+            if (! is_readable($filePath)) {
+                $this->error("File is not readable: {$filePath}");
+
+                return self::FAILURE;
+            }
+        }
 
         // Parse JSON input if provided
         $jsonInput = $this->option('input');
@@ -89,7 +106,7 @@ class OpenApiCommand extends Command
         }
 
         // Handle conflict: both --field and --input provided
-        if (! empty($fields) && $jsonData !== null) {
+        if ((! empty($fields) || ! empty($files)) && $jsonData !== null) {
             $this->error('Cannot use both --field and --input options. Use --input for JSON data or --field for form fields, not both.');
 
             return self::FAILURE;
@@ -97,7 +114,7 @@ class OpenApiCommand extends Command
 
         // Determine HTTP method (auto-detect POST when --field or --input is used, default to GET)
         $method = $this->option('method');
-        if (! $method && (! empty($fields) || $jsonData !== null)) {
+        if (! $method && (! empty($fields) || ! empty($files) || $jsonData !== null)) {
             $method = 'POST';
         }
         $method = strtoupper($method ?? 'GET');
@@ -127,7 +144,8 @@ class OpenApiCommand extends Command
         }
 
         // Execute the HTTP request
-        $http = Http::asJson();
+        // Note: Don't use Http::asJson() for multipart requests as it sets conflicting headers
+        $http = ! empty($files) ? Http::withOptions([]) : Http::asJson();
         $http = $this->applyAuthentication($http);
 
         // Determine how to send the request based on data type
@@ -135,6 +153,32 @@ class OpenApiCommand extends Command
             // Send as JSON (always use application/json for --input)
             $response = $http->send($method, $url, [
                 'json' => $jsonData,
+            ]);
+        } elseif (! empty($files)) {
+            // File uploads require multipart/form-data
+            // Build multipart array with files and regular fields
+            $multipart = [];
+
+            // Add file attachments
+            foreach ($files as $fieldName => $filePath) {
+                $multipart[] = [
+                    'name' => $fieldName,
+                    'contents' => file_get_contents($filePath),
+                    'filename' => basename($filePath),
+                ];
+            }
+
+            // Add regular fields if present
+            foreach ($fields as $fieldName => $value) {
+                $multipart[] = [
+                    'name' => $fieldName,
+                    'contents' => $value,
+                ];
+            }
+
+            // Send with multipart option
+            $response = $http->send($method, $url, [
+                'multipart' => $multipart,
             ]);
         } elseif (! empty($fields)) {
             // Get content types from spec to determine format
@@ -243,23 +287,36 @@ class OpenApiCommand extends Command
     }
 
     /**
-     * Parse field options into key-value array.
+     * Parse field options into regular fields and file uploads.
+     * Detects @ prefix for file uploads.
      *
      * @param  array<string>  $fieldOptions
-     * @return array<string, string>
+     * @return array{fields: array<string, string>, files: array<string, string>}
      */
     protected function parseFields(array $fieldOptions): array
     {
         $fields = [];
+        $files = [];
 
         foreach ($fieldOptions as $field) {
-            // Parse format: key=value
+            // Parse format: key=value or key=@/path/to/file
             if (str_contains($field, '=')) {
                 [$key, $value] = explode('=', $field, 2);
-                $fields[$key] = $value;
+
+                // Check if value starts with @ (file upload)
+                if (str_starts_with($value, '@')) {
+                    // Remove @ prefix and store as file path
+                    $files[$key] = substr($value, 1);
+                } else {
+                    // Regular field value
+                    $fields[$key] = $value;
+                }
             }
         }
 
-        return $fields;
+        return [
+            'fields' => $fields,
+            'files' => $files,
+        ];
     }
 }
