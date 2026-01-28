@@ -275,3 +275,22 @@
   - Parameter substitution uses simple str_replace with {paramName} placeholders
   - Always verify existing implementation before starting work on related features
 ---
+## 2026-01-28 - US-016
+- Implemented --query option parsing in OpenApiCommand
+- Added appendQueryParameters() method to parse query strings and append to URLs
+- Query parameters are URL-encoded using urlencode() for both keys and values
+- Supports multiple parameters in format: status=active&limit=10
+- Handles special characters, spaces, and empty values correctly
+- Created comprehensive test suite with 9 test cases in tests/Feature/QueryParametersTest.php
+- Tests cover single/multiple parameters, URL encoding, path parameter combinations, POST requests
+- All quality checks pass (analyse, format, test - 107 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/QueryParametersTest.php
+- **Learnings for future iterations:**
+  - Use parse_str() to convert query strings to associative arrays
+  - Always URL-encode both keys and values with urlencode() before appending to URL
+  - Check if URL already contains '?' to determine separator (? vs &)
+  - Test files must register the command INSIDE each test function (after Http::fake()), not in beforeEach()
+  - This ensures the spec file exists when the service provider reads it during registration
+  - Follow the pattern from GetRequestExecutionTest.php for test structure
+  - Query parameters can be combined with path parameters, POST methods, and other options
+---
