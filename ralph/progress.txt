@@ -185,3 +185,19 @@
   - Http::assertSent() can verify headers were correctly applied in test assertions
   - The applyAuthentication method implements a priority system for multiple auth configs
 ---
+## 2026-01-28 - US-010
+- API key authentication was already fully implemented in US-009
+- Verified all acceptance criteria are met:
+  - apiKey($headerName, $value) fluent method exists in CommandConfiguration (src/CommandConfiguration.php:61-67)
+  - applyAuthentication() handles API key auth using withHeader() (src/Commands/OpenApiCommand.php:73-75)
+  - Tests exist and pass (tests/Unit/AuthenticationTest.php:57-81)
+  - All quality checks pass (composer analyse, format, test - 88 tests passing)
+- No code changes needed - marking story as complete
+- Files verified: src/CommandConfiguration.php, src/Commands/OpenApiCommand.php, tests/Unit/AuthenticationTest.php
+- **Learnings for future iterations:**
+  - When US-009 was implemented, it included all authentication methods (bearer, apiKey, basic, callable) rather than just bearer token
+  - This is an example of efficient implementation - solving related problems together
+  - Always check if functionality already exists before implementing, especially for related features
+  - The authentication system supports any custom header name, making it flexible for various API key schemes
+  - The priority system in applyAuthentication ensures bearer > apiKey > basic > callable when multiple auth methods are configured
+---
