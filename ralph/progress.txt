@@ -428,3 +428,28 @@
   - Keep test assertions simple - checking for key sections is sufficient to verify the output structure
   - The --schema flag works without requiring an endpoint argument, making it easy for users to inspect specs
 ---
+
+## 2026-01-28 - US-024
+- Implemented --help-endpoint flag in OpenApiCommand to display detailed endpoint information
+- Added showEndpointHelp() protected method that displays:
+  - HTTP method and path (e.g., "GET /projects/{projectId}")
+  - Summary and description from OpenAPI spec
+  - Path parameters with their types and required/optional status
+  - Request body schema when present (formatted as indented JSON)
+  - Content-Type for request body
+- Created comprehensive test suite with 8 test cases in tests/Feature/EndpointHelpTest.php
+- Tests cover: simple GET endpoints, path parameters, request body schemas, multiple path parameters, parameterized path inputs with braces, multiple methods, descriptions, and absence of path parameters
+- All quality checks pass (composer analyse, format, test - 166 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/EndpointHelpTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The --help-endpoint flag should be checked after path matching (unlike --list and --schema which run before endpoint argument is required)
+  - This allows users to see help for specific matched endpoints, even parameterized ones
+  - Use $this->info() for highlighted output (HTTP method and path header)
+  - When displaying JSON schemas, indent each line for better readability (explode on newlines, prepend spaces)
+  - The showEndpointHelp() method loops through all available methods for an endpoint to show comprehensive help
+  - Use separators (---) between multiple methods when showing help for endpoints with multiple operations
+  - Check both summary and description fields - they may be identical, so avoid duplication
+  - When testing artisan commands with expectsOutputToContain(), keep assertions simple and focused
+  - The PathMatcher works with both concrete values (projects/123) and parameterized inputs (projects/{projectId})
+  - Use end($array) to check if an element is the last one when adding conditional separators
+---
