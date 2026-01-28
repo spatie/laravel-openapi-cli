@@ -115,3 +115,20 @@
   - When multiple paths match the same input, return all matches (let the caller decide how to handle)
   - HTTP methods in OpenAPI specs are lowercase keys (get, post, etc.) - use array_map('strtoupper') to normalize
 ---
+## 2026-01-28 - US-007
+- Implemented checkAmbiguity() method in PathMatcher class
+- Added ambiguity detection logic (when 2+ matches exist)
+- Created formatted error message showing all matching paths with their HTTP methods
+- Added --method flag suggestion in error message with example usage
+- Error message includes the command name for contextual examples
+- Created 8 comprehensive test cases for ambiguity checking
+- All quality checks pass (analyse, format, test)
+- Files changed: src/PathMatcher.php, tests/Unit/PathMatcherTest.php
+- **Learnings for future iterations:**
+  - The checkAmbiguity method returns a structured array with 'isAmbiguous' boolean and optional 'message' string
+  - Error messages should be clear and actionable, suggesting how to resolve the issue (--method flag)
+  - Include the actual command name in examples to make error messages contextual
+  - Test all edge cases: 0 matches, 1 match (not ambiguous), 2 matches, 3+ matches
+  - implode(', ', $array) is perfect for formatting comma-separated lists (like HTTP methods)
+  - The caller (command execution) will be responsible for displaying the error and exiting with error code
+---
