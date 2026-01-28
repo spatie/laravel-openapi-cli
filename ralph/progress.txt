@@ -334,3 +334,22 @@
   - The getRequestBodyContentTypes() method returns array of content-type strings from spec
   - Default to JSON when no content-type is specified in the spec (most common case)
 ---
+## 2026-01-28 - US-019
+- Implemented --input option parsing for raw JSON input
+- Added JSON validation using json_decode with JSON_THROW_ON_ERROR flag
+- Added auto-detection of POST method when --input is used (alongside existing --field detection)
+- Implemented conflict handling between --field and --input options with clear error message
+- JSON input always sends with Content-Type: application/json via the 'json' => $data option
+- Created comprehensive test suite with 9 test cases in tests/Feature/JsonInputTest.php
+- All quality checks pass (composer analyse, format, test - 136 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/JsonInputTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - json_decode($json, true, 512, JSON_THROW_ON_ERROR) provides both validation and error messages
+  - Use \JsonException to catch JSON parsing errors and show helpful error messages
+  - When handling multiple input methods (--field vs --input), check for conflicts explicitly before processing
+  - The --input option takes precedence in the request logic (checked first before --field)
+  - Test nested JSON structures, arrays, empty objects, and malformed JSON for comprehensive coverage
+  - The 'json' => $data option in Http::send() always uses application/json content-type
+  - Error messages should guide users to the correct usage (e.g., "Use --input for JSON data or --field for form fields")
+---
+
