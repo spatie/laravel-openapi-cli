@@ -474,3 +474,23 @@
   - Tests that check JSON output should use heredoc strings showing the exact pretty-printed format
   - When debugging test failures, simplify the code to the absolute minimum to identify the issue
 ---
+## 2026-01-29 - US-026
+- Implemented --minify flag in OpenApiCommand for minified JSON output
+- Updated outputResponse() method to check for --minify flag and format JSON accordingly
+- Updated outputSchema() method to respect --minify flag when outputting OpenAPI spec
+- When --minify is set, JSON is encoded without JSON_PRETTY_PRINT flag (single line, no whitespace)
+- When --minify is not set, JSON is pretty-printed by default (4-space indentation)
+- Created comprehensive test suite with 9 test cases in tests/Feature/OutputFormattingTest.php
+- Added test for --schema --minify combination in tests/Feature/SchemaOutputTest.php
+- All quality checks pass (composer analyse, format, test - 186 tests passing with 417 assertions)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/OutputFormattingTest.php, tests/Feature/SchemaOutputTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The --minify flag was already defined in the command signature from earlier work, just needed implementation
+  - JSON minification is achieved by omitting JSON_PRETTY_PRINT flag (only use JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+  - The --minify flag affects both response output (outputResponse) and schema output (outputSchema) for consistency
+  - Minified JSON is a single line with no extra whitespace between keys/values/arrays
+  - Non-JSON responses (HTML, plain text) are output as-is even with --minify flag
+  - Empty JSON objects and arrays ({}, []) are output as "[]" when decoded/re-encoded
+  - Tests for minified output should use expectsOutput() with exact single-line JSON string
+  - The minify functionality is useful for piping output to other tools or for compact terminal display
+---
