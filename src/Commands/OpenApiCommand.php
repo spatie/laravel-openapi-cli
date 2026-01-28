@@ -7,6 +7,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\CommandConfiguration;
 use Spatie\OpenApiCli\OpenApiParser;
+use Spatie\OpenApiCli\PathMatcher;
 
 class OpenApiCommand extends Command
 {
@@ -17,17 +18,89 @@ class OpenApiCommand extends Command
     public function __construct(
         protected CommandConfiguration $config
     ) {
-        $this->signature = $config->getSignature();
+        $this->signature = $config->getSignature().'
+            {endpoint? : The API endpoint path to call}
+            {--method= : HTTP method (GET, POST, PUT, PATCH, DELETE)}
+            {--field=* : Form field in key=value format (can be used multiple times)}
+            {--query= : Query string parameters}
+            {--input= : Raw JSON input}
+            {--list : List all available endpoints}
+            {--schema : Output the full OpenAPI schema as JSON}
+            {--help-endpoint : Show detailed help for a specific endpoint}
+            {--minify : Minify JSON output}
+            {--include : Include response headers in output}';
 
         parent::__construct();
     }
 
     public function handle(): int
     {
-        // Placeholder for actual command execution logic
-        // This will be implemented in later user stories
-        $this->info('OpenAPI command registered: '.$this->config->getSignature());
-        $this->info('Spec path: '.$this->config->getSpecPath());
+        $endpoint = $this->argument('endpoint');
+
+        // Get endpoint path
+        if (! $endpoint) {
+            $this->error('Please provide an endpoint path.');
+
+            return self::FAILURE;
+        }
+
+        // Parse the OpenAPI spec
+        $parser = new OpenApiParser($this->config->getSpecPath());
+        $paths = $parser->getPaths();
+
+        // Match the endpoint path
+        $matcher = new PathMatcher;
+        $matches = $matcher->matchPath($endpoint, $paths);
+
+        // Check if path was found
+        if (empty($matches)) {
+            $this->error('Endpoint not found in OpenAPI spec.');
+
+            return self::FAILURE;
+        }
+
+        // Check for ambiguous matches
+        $ambiguityCheck = $matcher->checkAmbiguity($matches, $this->config->getSignature());
+
+        if ($ambiguityCheck['isAmbiguous']) {
+            $this->error($ambiguityCheck['message']);
+
+            return self::FAILURE;
+        }
+
+        // Use the first (and only) match
+        $match = $matches[0];
+
+        // Determine HTTP method (default to GET)
+        $method = strtoupper($this->option('method') ?? 'GET');
+
+        // Validate method is allowed for this path
+        if (! in_array($method, $match['methods'])) {
+            $this->error("Method {$method} is not allowed for this endpoint.");
+            $this->error('Available methods: '.implode(', ', $match['methods']));
+
+            return self::FAILURE;
+        }
+
+        // Build the full URL
+        $baseUrl = $this->resolveBaseUrl();
+        $path = $match['path'];
+
+        // Substitute path parameters
+        foreach ($match['parameters'] as $name => $value) {
+            $path = str_replace('{'.$name.'}', $value, $path);
+        }
+
+        $url = rtrim($baseUrl, '/').$path;
+
+        // Execute the HTTP request
+        $http = Http::asJson();
+        $http = $this->applyAuthentication($http);
+
+        $response = $http->send($method, $url);
+
+        // Output the response body
+        $this->line($response->body());
 
         return self::SUCCESS;
     }
