@@ -218,3 +218,20 @@
   - The test suite verifies that basic auth credentials are properly encoded (base64_encode('user:pass'))
   - Always verify existing implementation before starting work on similar features
 ---
+## 2026-01-28 - US-012
+- Dynamic/Callable authentication was already fully implemented in US-009
+- Verified all acceptance criteria are met:
+  - auth(callable) fluent method exists in CommandConfiguration (src/CommandConfiguration.php:97-102)
+  - applyAuthentication() invokes callable on each request (src/Commands/OpenApiCommand.php:83-88)
+  - Returned value is used as Bearer token via withToken()
+  - Tests verify closures work and callable is invoked fresh on each request (tests/Unit/AuthenticationTest.php:115-174)
+  - All quality checks pass (composer analyse, format, test - 88 tests passing)
+- No code changes needed - marking story as complete
+- Files verified: src/CommandConfiguration.php, src/Commands/OpenApiCommand.php, tests/Unit/AuthenticationTest.php
+- **Learnings for future iterations:**
+  - This is the third consecutive auth story (US-010, US-011, US-012) already implemented in US-009
+  - The callable auth implementation correctly invokes the function on each request, not just once at registration
+  - The test suite verifies fresh invocation by checking invocation count increases with multiple requests
+  - Callable auth returns the token value which is then passed to withToken(), maintaining consistency with bearer auth
+  - All four authentication methods (bearer, apiKey, basic, callable) were implemented together efficiently
+---
