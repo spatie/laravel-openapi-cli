@@ -91,6 +91,11 @@ class OpenApiCommand extends Command
         // Use the first (and only) match
         $match = $matches[0];
 
+        // Handle --help-endpoint flag (show endpoint details)
+        if ($this->option('help-endpoint')) {
+            return $this->showEndpointHelp($parser, $match);
+        }
+
         // Parse form fields and file uploads if provided
         $parseResult = $this->parseFields($this->option('field'));
         $fields = $parseResult['fields'];
@@ -409,6 +414,87 @@ class OpenApiCommand extends Command
         $json = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         $this->line($json);
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Show detailed help for a specific endpoint.
+     *
+     * @param  array{path: string, parameters: array<string, string>, methods: array<string>}  $match
+     */
+    protected function showEndpointHelp(OpenApiParser $parser, array $match): int
+    {
+        $path = $match['path'];
+        $methods = $match['methods'];
+
+        // If multiple methods are available, show details for each
+        foreach ($methods as $method) {
+            $methodUpper = strtoupper($method);
+
+            // Show HTTP method and path
+            $this->line('');
+            $this->info("{$methodUpper} {$path}");
+            $this->line('');
+
+            // Show description
+            $summary = $parser->getOperationSummary($path, $method);
+            $description = $parser->getOperationDescription($path, $method);
+
+            if ($summary) {
+                $this->line($summary);
+            }
+
+            if ($description && $description !== $summary) {
+                $this->line($description);
+            }
+
+            // Show path parameters if present
+            $pathParams = $parser->getPathParameters($path, $method);
+
+            if (! empty($pathParams)) {
+                $this->line('');
+                $this->line('Path Parameters:');
+
+                foreach ($pathParams as $param) {
+                    $required = $param['required'] ? 'required' : 'optional';
+                    $this->line("  {$param['name']} ({$param['type']}, {$required})");
+                }
+            }
+
+            // Show request body schema if present
+            $requestBodySchema = $parser->getRequestBodySchema($path, $method);
+            $contentTypes = $parser->getRequestBodyContentTypes($path, $method);
+
+            if ($requestBodySchema) {
+                $this->line('');
+                $this->line('Request Body:');
+
+                // Show content-type
+                if (! empty($contentTypes)) {
+                    $contentType = $contentTypes[0] ?? 'application/json';
+                    $this->line("  Content-Type: {$contentType}");
+                }
+
+                // Show schema as JSON
+                $schemaJson = json_encode($requestBodySchema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                $this->line('  Schema:');
+
+                // Indent the JSON schema
+                $lines = explode("\n", $schemaJson);
+                foreach ($lines as $line) {
+                    $this->line("    {$line}");
+                }
+            }
+
+            // If there are more methods, add a separator
+            if (count($methods) > 1 && $method !== end($methods)) {
+                $this->line('');
+                $this->line('---');
+            }
+        }
+
+        $this->line('');
 
         return self::SUCCESS;
     }
