@@ -62,3 +62,21 @@
   - JSON_THROW_ON_ERROR flag ensures clear error messages for invalid JSON
   - Tests should verify both YAML and JSON work identically for all extraction methods
 ---
+## 2026-01-28 - US-004
+- Created RefResolver class in src/RefResolver.php
+- Implemented resolution of simple $ref pointers (e.g., '#/components/schemas/User')
+- Implemented recursive resolution for nested refs (refs within resolved objects)
+- Added support for refs in arrays and complex structures like allOf
+- Implemented JSON pointer lookup with proper decoding (~0 for ~, ~1 for /)
+- Added error handling for invalid ref pointers and external references
+- Created comprehensive test suite with 13 test cases in tests/Unit/RefResolverTest.php
+- All quality checks pass (analyse, format, test)
+- Files changed: src/RefResolver.php, tests/Unit/RefResolverTest.php
+- **Learnings for future iterations:**
+  - JSON pointer uses ~0 to represent ~ and ~1 to represent / (must decode during resolution)
+  - References can be nested deeply and must be resolved recursively
+  - The resolve() method should handle both the $ref lookup AND recursive resolution of the result
+  - Always check if a value is an array before trying to access keys to avoid type errors
+  - Test edge cases like allOf, deeply nested refs, and multiple refs in the same structure
+  - External references (not starting with '#/') should be explicitly rejected with clear error messages
+---
