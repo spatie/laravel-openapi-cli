@@ -4,6 +4,7 @@ namespace Spatie\OpenApiCli;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Spatie\OpenApiCli\Commands\OpenApiCommand;
 
 class OpenApiCliServiceProvider extends PackageServiceProvider
 {
@@ -17,5 +18,17 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
         $package
             ->name('laravel-openapi-cli')
             ->hasConfigFile();
+    }
+
+    public function packageRegistered(): void
+    {
+        // Register all OpenAPI commands
+        foreach (OpenApiCli::getRegistrations() as $config) {
+            $this->app->singleton($config->getSignature(), function () use ($config) {
+                return new OpenApiCommand($config);
+            });
+
+            $this->commands($config->getSignature());
+        }
     }
 }
