@@ -77,15 +77,24 @@ afterEach(function () {
 
 it('executes GET request to simple endpoint', function () {
     Http::fake([
-        'api.example.com/projects' => Http::response(['data' => ['project1', 'project2']], 200),
+        'https://api.example.com/projects' => Http::response('{"data":["project1","project2"]}', 200),
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
     $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
 
+    $expected = <<<'JSON'
+{
+    "data": [
+        "project1",
+        "project2"
+    ]
+}
+JSON;
+
     $this->artisan('test-api', ['endpoint' => 'projects'])
         ->assertSuccessful()
-        ->expectsOutput('{"data":["project1","project2"]}');
+        ->expectsOutput($expected);
 
     Http::assertSent(function ($request) {
         return $request->url() === 'https://api.example.com/projects'
@@ -95,15 +104,22 @@ it('executes GET request to simple endpoint', function () {
 
 it('executes GET request with path parameters', function () {
     Http::fake([
-        'api.example.com/projects/123' => Http::response(['id' => 123, 'name' => 'Test Project'], 200),
+        'https://api.example.com/projects/123' => Http::response('{"id":123,"name":"Test Project"}', 200),
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
     $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
 
+    $expected = <<<'JSON'
+{
+    "id": 123,
+    "name": "Test Project"
+}
+JSON;
+
     $this->artisan('test-api', ['endpoint' => 'projects/123'])
         ->assertSuccessful()
-        ->expectsOutput('{"id":123,"name":"Test Project"}');
+        ->expectsOutput($expected);
 
     Http::assertSent(function ($request) {
         return $request->url() === 'https://api.example.com/projects/123'
@@ -113,15 +129,24 @@ it('executes GET request with path parameters', function () {
 
 it('executes GET request with multiple path parameters', function () {
     Http::fake([
-        'api.example.com/users/456/posts' => Http::response(['posts' => ['post1', 'post2']], 200),
+        'https://api.example.com/users/456/posts' => Http::response('{"posts":["post1","post2"]}', 200),
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
     $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
 
+    $expected = <<<'JSON'
+{
+    "posts": [
+        "post1",
+        "post2"
+    ]
+}
+JSON;
+
     $this->artisan('test-api', ['endpoint' => 'users/456/posts'])
         ->assertSuccessful()
-        ->expectsOutput('{"posts":["post1","post2"]}');
+        ->expectsOutput($expected);
 
     Http::assertSent(function ($request) {
         return $request->url() === 'https://api.example.com/users/456/posts'

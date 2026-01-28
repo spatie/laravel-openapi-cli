@@ -226,8 +226,8 @@ class OpenApiCommand extends Command
             $response = $http->send($method, $url);
         }
 
-        // Output the response body
-        $this->line($response->body());
+        // Output the response body with formatting
+        $this->outputResponse($response);
 
         return self::SUCCESS;
     }
@@ -497,5 +497,25 @@ class OpenApiCommand extends Command
         $this->line('');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Output the HTTP response with appropriate formatting.
+     */
+    protected function outputResponse(\Illuminate\Http\Client\Response $response): void
+    {
+        $body = $response->body();
+
+        // Check if response is JSON by attempting to decode it
+        $decoded = json_decode($body, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && $decoded !== null) {
+            // Valid JSON - format it with pretty print
+            $formatted = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $this->line($formatted);
+        } else {
+            // Not valid JSON - output raw body
+            $this->line($body);
+        }
     }
 }
