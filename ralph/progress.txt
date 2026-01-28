@@ -150,3 +150,19 @@
   - Fluent methods should return $this to enable method chaining
   - Store registrations as static array to persist across service provider lifecycle
 ---
+
+## 2026-01-28 - US-013
+- Implemented resolveBaseUrl() method in OpenApiCommand
+- Method checks configured baseUrl first, then falls back to spec's servers[0].url
+- Throws RuntimeException if no base URL is available (neither configured nor in spec)
+- Created comprehensive feature tests (5 test cases) covering all scenarios
+- All quality checks pass (analyse, format, test - 81 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/BaseUrlConfigurationTest.php
+- **Learnings for future iterations:**
+  - The baseUrl() and getBaseUrl() methods were already implemented in CommandConfiguration (from US-008)
+  - Use reflection to test protected methods in feature tests: $reflection->getMethod('methodName')->setAccessible(true)
+  - When creating temp files for tests, include uniqid() in filename to prevent conflicts
+  - Always clean up temp files in tests using try/finally blocks
+  - The resolveBaseUrl() method prioritizes: 1) configured baseUrl, 2) spec servers[0].url, 3) throw exception
+  - RuntimeException is appropriate for configuration errors that should halt execution
+---
