@@ -235,3 +235,43 @@
   - Callable auth returns the token value which is then passed to withToken(), maintaining consistency with bearer auth
   - All four authentication methods (bearer, apiKey, basic, callable) were implemented together efficiently
 ---
+## 2026-01-28 - US-014
+- Implemented handle() method in OpenApiCommand to execute GET requests
+- Added endpoint argument and command options (--method, --field, --query, --input, --list, --schema, --help-endpoint, --minify, --include)
+- Integrated PathMatcher to match user input against OpenAPI spec paths
+- Implemented path parameter substitution into final URL
+- Integrated authentication via applyAuthentication() method
+- Implemented HTTP method validation (checks if method is allowed for endpoint)
+- Added comprehensive error handling (endpoint not found, method not allowed, no endpoint provided)
+- Created 10 feature tests in tests/Feature/GetRequestExecutionTest.php using Pest format
+- All quality checks pass (analyse, format, test - 98 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/GetRequestExecutionTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - Pest uses function-based tests with it() or test() functions, not PHPUnit-style class-based tests
+  - PathMatcher doesn't take paths in constructor - it takes them as second parameter in matchPath()
+  - Use beforeEach() and afterEach() in Pest tests for setup/teardown
+  - Laravel's Http::fake() requires full URL matching including protocol and domain
+  - The artisan command testing uses $this->artisan() with ->assertSuccessful() and ->expectsOutput()
+  - Always clean up temp files in afterEach() to prevent test pollution
+  - Http::assertSent() is used to verify HTTP requests were made with correct parameters
+  - Http::assertNothingSent() verifies no HTTP requests were made (useful for error cases)
+  - The command signature can be extended with arguments and options using Laravel's command syntax
+  - Use Http::asJson() to set default Accept/Content-Type headers for JSON APIs
+---
+## 2026-01-28 - US-015
+- Path parameters were already fully implemented in US-014
+- Verified all acceptance criteria are met:
+  - PathMatcher extracts path parameters from user input (e.g., projects/123/errors/456)
+  - Matches against parameterized paths (e.g., /projects/{projectId}/errors/{errorId})
+  - Path parameters are substituted into final URL (src/Commands/OpenApiCommand.php:90-92)
+  - Tests exist for single and multiple path parameters (tests/Feature/GetRequestExecutionTest.php)
+  - All quality checks pass (composer analyse, format, test - 98 tests passing)
+- No code changes needed - marking story as complete
+- Files verified: src/Commands/OpenApiCommand.php, tests/Feature/GetRequestExecutionTest.php
+- **Learnings for future iterations:**
+  - This is another example of efficient implementation - US-014 included path parameter handling since it's core to the command execution flow
+  - The PathMatcher class handles parameter extraction automatically during path matching
+  - Path parameters are extracted as part of the match result: $match['parameters'] contains name=>value pairs
+  - Parameter substitution uses simple str_replace with {paramName} placeholders
+  - Always verify existing implementation before starting work on related features
+---
