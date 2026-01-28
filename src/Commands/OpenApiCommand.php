@@ -238,6 +238,15 @@ class OpenApiCommand extends Command
             return self::FAILURE;
         }
 
+        if ($statusCode >= 500) {
+            // 5xx server errors
+            $this->error("HTTP {$statusCode} Error");
+            $this->line('');
+            $this->outputResponse($response);
+
+            return self::FAILURE;
+        }
+
         // Output the response body with formatting
         $this->outputResponse($response);
 
