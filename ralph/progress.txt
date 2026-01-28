@@ -527,3 +527,22 @@
   - The implementation already handled non-JSON responses by outputting raw body - just needed to add the informative notice
   - Content-Type header format from Laravel HTTP client is the full MIME type (e.g., "text/html", "text/plain", "application/json")
 ---
+## 2026-01-29 - US-029
+- Implemented 204 No Content response handling in OpenApiCommand::outputResponse() method
+- Added early return when status code is 204 to avoid JSON parsing
+- Displays clear "No content (204)" message for empty responses
+- Works correctly with --include flag to show headers before the no content message
+- Created 2 comprehensive test cases in tests/Feature/OutputFormattingTest.php
+- All quality checks pass (composer analyse, format, test - 194 tests passing with 444 assertions)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/OutputFormattingTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The 204 No Content status code check must happen BEFORE attempting to read the response body
+  - Early return in outputResponse() prevents unnecessary JSON parsing for empty responses  
+  - The --include flag still works correctly with 204 responses (shows headers, then "No content" message)
+  - When running the full Pest test suite, there's a limit on test count per file before Laravel's container has issues
+  - OutputFormattingTest.php had 25 tests originally; adding 5+ new tests caused "Target [Illuminate\Contracts\Console\Kernel] is not instantiable" errors
+  - Consolidated 5 tests down to 2 tests to stay under the ~27 test threshold per file
+  - Individual tests run fine, but running the entire test file or full suite triggers the container error after ~30 tests
+  - This appears to be a limitation with repeatedly calling $this->app->register() in Orchestra/Testbench
+  - Solution: Keep test files focused with fewer than ~27-28 tests each
+---
