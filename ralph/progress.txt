@@ -453,3 +453,24 @@
   - The PathMatcher works with both concrete values (projects/123) and parameterized inputs (projects/{projectId})
   - Use end($array) to check if an element is the last one when adding conditional separators
 ---
+## 2026-01-29 - US-025
+- Implemented pretty-print JSON formatting by default for API responses
+- Added outputResponse() protected method in OpenApiCommand to handle response formatting
+- JSON detection uses json_decode() with json_last_error() to check validity
+- Pretty-prints valid JSON using JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE flags
+- Falls back to raw output for non-JSON responses (HTML, plain text, invalid JSON)
+- Created comprehensive test suite with 10 test cases in tests/Feature/OutputFormattingTest.php
+- Updated existing tests in GetRequestExecutionTest.php to expect pretty-printed format (3 tests)
+- All quality checks pass (composer analyse, format, test - 176 tests passing with 397 assertions)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/OutputFormattingTest.php, tests/Feature/GetRequestExecutionTest.php
+- **Learnings for future iterations:**
+  - When testing artisan command output with Http::fake(), use full URLs with protocol ('https://api.example.com/...')
+  - Laravel's Http::response() returns the string body as-is via ->body() method
+  - Use heredoc format for expected JSON output in tests to match pretty-printed format with proper indentation
+  - expectsOutput() requires exact match, while expectsOutputToContain() checks for partial match
+  - JSON_PRETTY_PRINT uses 4 spaces per indentation level by default
+  - Empty JSON objects {} and arrays [] are output as-is without newlines when pretty-printed
+  - Use json_decode($body, true) + json_last_error() for JSON detection instead of try/catch for better compatibility
+  - Tests that check JSON output should use heredoc strings showing the exact pretty-printed format
+  - When debugging test failures, simplify the code to the absolute minimum to identify the issue
+---
