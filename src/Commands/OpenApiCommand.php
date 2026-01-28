@@ -528,6 +528,13 @@ class OpenApiCommand extends Command
             $this->line('');
         }
 
+        // Handle 204 No Content responses
+        if ($response->status() === 204) {
+            $this->line('No content (204)');
+
+            return;
+        }
+
         $body = $response->body();
 
         // Check if response is JSON by attempting to decode it

@@ -438,3 +438,37 @@ it('combines --include and --minify flags correctly', function () {
         ->expectsOutputToContain('{"name":"Project 1","id":123}')
         ->assertSuccessful();
 });
+
+// 204 No Content tests
+
+it('handles 204 No Content responses gracefully and exits successfully', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('', 204),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects')
+        ->expectsOutput('No content (204)')
+        ->assertSuccessful();
+
+    // Verify request was sent
+    Http::assertSent(function ($request) {
+        return $request->url() === 'https://api.example.com/projects';
+    });
+});
+
+it('shows 204 status in headers when --include flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('', 204),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --include')
+        ->expectsOutputToContain('HTTP/1.1 204 No Content')
+        ->expectsOutputToContain('No content (204)')
+        ->assertSuccessful();
+});
