@@ -494,3 +494,22 @@
   - Tests for minified output should use expectsOutput() with exact single-line JSON string
   - The minify functionality is useful for piping output to other tools or for compact terminal display
 ---
+## 2026-01-29 - US-027
+- Implemented --include flag in OpenApiCommand to display response headers
+- Added HTTP status line output: "HTTP/1.1 {statusCode} {reasonPhrase}"
+- Added response headers output using $response->headers() method which returns array of header names to values
+- Headers are displayed before body with blank line separator for readability
+- Works correctly with both --minify and default pretty-print modes
+- Created comprehensive test suite with 6 test cases in tests/Feature/OutputFormattingTest.php
+- All quality checks pass (composer analyse, format, test - 192 tests passing with 434 assertions)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/OutputFormattingTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - Laravel's Response::headers() returns array of header names => arrays of values (headers can have multiple values)
+  - Need to iterate through both the header names and their values arrays to display all headers correctly
+  - Response::status() returns status code as integer, Response::reason() returns reason phrase as string
+  - The --include flag should be checked in outputResponse() method to keep header display logic centralized
+  - Header format is "Header-Name: value" (standard HTTP header format)
+  - Blank line separator between headers and body matches curl's -i output and HTTP specification
+  - The --include flag combines well with other flags (--minify, --query, etc.) without conflicts
+  - Test assertions should use expectsOutputToContain() for checking specific lines in multi-line output
+---
