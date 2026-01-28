@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Spatie\OpenApiCli\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class OpenApiCliCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'laravel-openapi-cli';
 
     public $description = 'My command';
 
