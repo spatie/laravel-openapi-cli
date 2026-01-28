@@ -314,3 +314,23 @@
   - Always verify existing functionality before implementing - check both code AND tests
   - Comprehensive test coverage ensures all acceptance criteria are met even if code already exists
 ---
+## 2026-01-28 - US-018
+- Implemented --field option parsing in OpenApiCommand with parseFields() method
+- Added auto-detection of POST method when --field is used (no --method required)
+- Implemented content-type detection from OpenAPI spec via getRequestBodyContentTypes()
+- Fields are sent as JSON when spec expects application/json (or no content-type specified)
+- Fields are sent as form-data when spec expects application/x-www-form-urlencoded or multipart/form-data
+- Created comprehensive test suite with 9 test cases in tests/Feature/FormFieldsTest.php
+- All quality checks pass (composer analyse, format, test - 127 tests passing)
+- Files changed: src/OpenApiParser.php, src/Commands/OpenApiCommand.php, tests/Feature/FormFieldsTest.php
+- **Learnings for future iterations:**
+  - The --field option was already defined in the command signature from earlier work
+  - Use explode($delimiter, $string, 2) to split on first occurrence only (handles = in values)
+  - Empty field arrays are truthy in PHP, use ! empty($fields) to check for actual content
+  - When sending data via Http::send(), use 'json' => $data for JSON or 'form_params' => $data for form data
+  - Http::asJson() sets default headers but doesn't override explicit json/form_params in send() options
+  - All tests must call OpenApiCli::register() then $this->app->register() to re-register the service provider
+  - Test assertions for Http requests: Http::assertSent() with callback checking url, method, and data()
+  - The getRequestBodyContentTypes() method returns array of content-type strings from spec
+  - Default to JSON when no content-type is specified in the spec (most common case)
+---
