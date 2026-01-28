@@ -93,6 +93,11 @@ class OpenApiCommand extends Command
 
         $url = rtrim($baseUrl, '/').$path;
 
+        // Append query parameters if provided
+        if ($queryString = $this->option('query')) {
+            $url = $this->appendQueryParameters($url, $queryString);
+        }
+
         // Execute the HTTP request
         $http = Http::asJson();
         $http = $this->applyAuthentication($http);
@@ -130,6 +135,26 @@ class OpenApiCommand extends Command
         throw new \RuntimeException(
             'No base URL available. Either configure one using ->baseUrl() or ensure your OpenAPI spec has a servers array.'
         );
+    }
+
+    /**
+     * Append query parameters to the URL with URL encoding.
+     */
+    protected function appendQueryParameters(string $url, string $queryString): string
+    {
+        // Parse the query string into key-value pairs
+        parse_str($queryString, $params);
+
+        // Build the query string with URL-encoded values
+        $encodedParams = [];
+        foreach ($params as $key => $value) {
+            $encodedParams[] = urlencode($key).'='.urlencode($value);
+        }
+
+        // Append to URL with appropriate separator
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$separator.implode('&', $encodedParams);
     }
 
     /**
