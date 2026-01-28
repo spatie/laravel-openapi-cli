@@ -71,8 +71,15 @@ class OpenApiCommand extends Command
         // Use the first (and only) match
         $match = $matches[0];
 
-        // Determine HTTP method (default to GET)
-        $method = strtoupper($this->option('method') ?? 'GET');
+        // Parse form fields if provided
+        $fields = $this->parseFields($this->option('field'));
+
+        // Determine HTTP method (auto-detect POST when --field is used, default to GET)
+        $method = $this->option('method');
+        if (! $method && ! empty($fields)) {
+            $method = 'POST';
+        }
+        $method = strtoupper($method ?? 'GET');
 
         // Validate method is allowed for this path
         if (! in_array($method, $match['methods'])) {
@@ -102,7 +109,27 @@ class OpenApiCommand extends Command
         $http = Http::asJson();
         $http = $this->applyAuthentication($http);
 
-        $response = $http->send($method, $url);
+        // Determine how to send the request based on fields
+        if (! empty($fields)) {
+            // Get content types from spec to determine format
+            $contentTypes = $parser->getRequestBodyContentTypes($match['path'], strtolower($method));
+
+            // Check if spec expects application/json or if no content type is specified (default to JSON)
+            if (empty($contentTypes) || in_array('application/json', $contentTypes)) {
+                // Send as JSON
+                $response = $http->send($method, $url, [
+                    'json' => $fields,
+                ]);
+            } else {
+                // Send as form-data (for multipart/form-data or application/x-www-form-urlencoded)
+                $response = $http->send($method, $url, [
+                    'form_params' => $fields,
+                ]);
+            }
+        } else {
+            // No fields, just send the request
+            $response = $http->send($method, $url);
+        }
 
         // Output the response body
         $this->line($response->body());
@@ -187,5 +214,26 @@ class OpenApiCommand extends Command
 
         // No authentication configured
         return $http;
+    }
+
+    /**
+     * Parse field options into key-value array.
+     *
+     * @param  array<string>  $fieldOptions
+     * @return array<string, string>
+     */
+    protected function parseFields(array $fieldOptions): array
+    {
+        $fields = [];
+
+        foreach ($fieldOptions as $field) {
+            // Parse format: key=value
+            if (str_contains($field, '=')) {
+                [$key, $value] = explode('=', $field, 2);
+                $fields[$key] = $value;
+            }
+        }
+
+        return $fields;
     }
 }

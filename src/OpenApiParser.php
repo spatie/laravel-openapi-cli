@@ -114,6 +114,26 @@ class OpenApiParser
         return $jsonContent['schema'] ?? null;
     }
 
+    /**
+     * Get the request body content types for a given path and method.
+     *
+     * @return array<string>
+     */
+    public function getRequestBodyContentTypes(string $path, string $method): array
+    {
+        $method = strtolower($method);
+        $operation = $this->spec['paths'][$path][$method] ?? [];
+        $requestBody = $operation['requestBody'] ?? null;
+
+        if (! $requestBody) {
+            return [];
+        }
+
+        $content = $requestBody['content'] ?? [];
+
+        return array_keys($content);
+    }
+
     public function getSpec(): array
     {
         return $this->spec;
