@@ -509,6 +509,25 @@ class OpenApiCommand extends Command
      */
     protected function outputResponse(\Illuminate\Http\Client\Response $response): void
     {
+        // Show response headers if --include flag is set
+        if ($this->option('include')) {
+            // Show HTTP status line
+            $statusCode = $response->status();
+            $reasonPhrase = $response->reason();
+            $this->line("HTTP/1.1 {$statusCode} {$reasonPhrase}");
+
+            // Show all response headers
+            foreach ($response->headers() as $name => $values) {
+                // Headers can have multiple values
+                foreach ($values as $value) {
+                    $this->line("{$name}: {$value}");
+                }
+            }
+
+            // Blank line to separate headers from body
+            $this->line('');
+        }
+
         $body = $response->body();
 
         // Check if response is JSON by attempting to decode it

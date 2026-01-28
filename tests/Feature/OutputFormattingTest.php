@@ -340,3 +340,97 @@ it('outputs raw body for non-JSON responses even with --minify flag', function (
         ->expectsOutput('<html><body>Hello</body></html>')
         ->assertSuccessful();
 });
+
+// --include flag tests
+
+it('shows HTTP status line when --include flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1"}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --include')
+        ->expectsOutputToContain('HTTP/1.1 200 OK')
+        ->assertSuccessful();
+});
+
+it('shows response headers when --include flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1"}', 200, [
+            'Content-Type' => 'application/json',
+            'X-Custom-Header' => 'custom-value',
+        ]),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --include')
+        ->expectsOutputToContain('Content-Type: application/json')
+        ->expectsOutputToContain('X-Custom-Header: custom-value')
+        ->assertSuccessful();
+});
+
+it('separates headers from body with blank line when --include flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1"}', 200, [
+            'Content-Type' => 'application/json',
+        ]),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --include')
+        ->expectsOutputToContain('Content-Type: application/json')
+        ->expectsOutputToContain('"name": "Project 1"')
+        ->assertSuccessful();
+});
+
+it('shows headers before body when --include flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"id":123}', 200, [
+            'X-Request-ID' => 'abc-123',
+        ]),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --include')
+        ->expectsOutputToContain('X-Request-ID: abc-123')
+        ->expectsOutputToContain('"id": 123')
+        ->assertSuccessful();
+});
+
+it('shows headers with different status codes when --include flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"error":"Not Found"}', 404),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --include')
+        ->expectsOutputToContain('HTTP/1.1 404 Not Found')
+        ->assertSuccessful();
+});
+
+it('combines --include and --minify flags correctly', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200, [
+            'Content-Type' => 'application/json',
+        ]),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --include --minify')
+        ->expectsOutputToContain('HTTP/1.1 200 OK')
+        ->expectsOutputToContain('Content-Type: application/json')
+        ->expectsOutputToContain('{"name":"Project 1","id":123}')
+        ->assertSuccessful();
+});
