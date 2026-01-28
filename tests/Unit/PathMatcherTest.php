@@ -108,3 +108,172 @@ it('parameter values cannot contain slashes', function () {
     // This should not match because parameter values cannot contain /
     expect(preg_match($regex, '/projects/123/extra'))->toBe(0);
 });
+
+// Tests for matchPath method
+it('matches simple path without parameters', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects' => ['get' => [], 'post' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects', $specPaths);
+
+    expect($matches)->toHaveCount(1);
+    expect($matches[0]['path'])->toBe('/projects');
+    expect($matches[0]['parameters'])->toBe([]);
+    expect($matches[0]['methods'])->toBe(['GET', 'POST']);
+    expect($matches[0]['isExact'])->toBeTrue();
+});
+
+it('matches path with leading slash', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects' => ['get' => []],
+    ];
+
+    $matches = $matcher->matchPath('/projects', $specPaths);
+
+    expect($matches)->toHaveCount(1);
+    expect($matches[0]['path'])->toBe('/projects');
+});
+
+it('matches path with trailing slash', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects' => ['get' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects/', $specPaths);
+
+    expect($matches)->toHaveCount(1);
+    expect($matches[0]['path'])->toBe('/projects');
+});
+
+it('matches path with single parameter', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects/{id}' => ['get' => [], 'put' => [], 'delete' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects/123', $specPaths);
+
+    expect($matches)->toHaveCount(1);
+    expect($matches[0]['path'])->toBe('/projects/{id}');
+    expect($matches[0]['parameters'])->toBe(['id' => '123']);
+    expect($matches[0]['methods'])->toBe(['GET', 'PUT', 'DELETE']);
+    expect($matches[0]['isExact'])->toBeFalse();
+});
+
+it('matches path with multiple parameters', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects/{projectId}/errors/{errorId}' => ['get' => [], 'patch' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects/456/errors/789', $specPaths);
+
+    expect($matches)->toHaveCount(1);
+    expect($matches[0]['path'])->toBe('/projects/{projectId}/errors/{errorId}');
+    expect($matches[0]['parameters'])->toBe(['projectId' => '456', 'errorId' => '789']);
+    expect($matches[0]['methods'])->toBe(['GET', 'PATCH']);
+});
+
+it('returns empty array when no paths match', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects' => ['get' => []],
+        '/teams' => ['get' => []],
+    ];
+
+    $matches = $matcher->matchPath('users', $specPaths);
+
+    expect($matches)->toBe([]);
+});
+
+it('returns HTTP methods for matched path', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects' => ['get' => [], 'post' => [], 'put' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects', $specPaths);
+
+    expect($matches[0]['methods'])->toBe(['GET', 'POST', 'PUT']);
+});
+
+it('prioritizes exact matches over parameterized matches', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects/{id}' => ['get' => []],
+        '/projects/active' => ['get' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects/active', $specPaths);
+
+    expect($matches)->toHaveCount(2);
+    expect($matches[0]['path'])->toBe('/projects/active');
+    expect($matches[0]['isExact'])->toBeTrue();
+    expect($matches[1]['path'])->toBe('/projects/{id}');
+    expect($matches[1]['isExact'])->toBeFalse();
+});
+
+it('returns all matching paths when multiple paths match', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects/{id}' => ['get' => []],
+        '/projects/{projectId}' => ['post' => []],
+    ];
+
+    // Both patterns match the same input (different parameter names)
+    $matches = $matcher->matchPath('projects/123', $specPaths);
+
+    expect($matches)->toHaveCount(2);
+    expect($matches[0]['path'])->toBe('/projects/{id}');
+    expect($matches[1]['path'])->toBe('/projects/{projectId}');
+});
+
+it('handles paths with both leading and trailing slashes', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects' => ['get' => []],
+    ];
+
+    $matches = $matcher->matchPath('/projects/', $specPaths);
+
+    expect($matches)->toHaveCount(1);
+    expect($matches[0]['path'])->toBe('/projects');
+});
+
+it('extracts parameters with special characters', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects/{id}' => ['get' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects/abc-def-123', $specPaths);
+
+    expect($matches)->toHaveCount(1);
+    expect($matches[0]['parameters'])->toBe(['id' => 'abc-def-123']);
+});
+
+it('matchPath does not match paths with extra segments', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects' => ['get' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects/123', $specPaths);
+
+    expect($matches)->toBe([]);
+});
+
+it('matchPath does not match paths with missing segments', function () {
+    $matcher = new PathMatcher;
+    $specPaths = [
+        '/projects/{id}/errors' => ['get' => []],
+    ];
+
+    $matches = $matcher->matchPath('projects/123', $specPaths);
+
+    expect($matches)->toBe([]);
+});
