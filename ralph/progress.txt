@@ -132,3 +132,21 @@
   - implode(', ', $array) is perfect for formatting comma-separated lists (like HTTP methods)
   - The caller (command execution) will be responsible for displaying the error and exiting with error code
 ---
+## 2026-01-28 - US-008
+- Created CommandConfiguration class for fluent chaining with getters for all configuration options
+- Implemented OpenApiCli::register() static method that creates and stores CommandConfiguration instances
+- Created OpenApiCommand class that extends Laravel's Command and accepts CommandConfiguration
+- Updated OpenApiCliServiceProvider::packageRegistered() to register all commands dynamically
+- Added comprehensive feature tests with 7 test cases covering registration, chaining, and artisan list
+- All quality checks pass (analyse, format, test - 76 tests passing)
+- Files changed: src/OpenApiCli.php, src/CommandConfiguration.php, src/Commands/OpenApiCommand.php, src/OpenApiCliServiceProvider.php, tests/Feature/CommandRegistrationTest.php
+- **Learnings for future iterations:**
+  - Commands must be registered in the ServiceProvider's packageRegistered() method using $this->commands()
+  - Use singleton binding for command instances to ensure configuration is preserved
+  - CommandConfiguration acts as a DTO to pass configuration from registration to command execution
+  - The signature property must be set before calling parent::__construct() in Command classes
+  - Use OpenApiCli::clearRegistrations() in tests to prevent state leaking between tests
+  - Re-bootstrap the service provider with $this->app->register() to test command registration in artisan list
+  - Fluent methods should return $this to enable method chaining
+  - Store registrations as static array to persist across service provider lifecycle
+---
