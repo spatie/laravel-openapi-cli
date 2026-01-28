@@ -80,3 +80,20 @@
   - Test edge cases like allOf, deeply nested refs, and multiple refs in the same structure
   - External references (not starting with '#/') should be explicitly rejected with clear error messages
 ---
+## 2026-01-28 - US-005
+- Created PathMatcher class in src/PathMatcher.php
+- Implemented convertToRegex() method to convert OpenAPI path templates to regex patterns
+- Converts {param} syntax to named capture groups (?P<param>[^/]+)
+- Uses ~ as regex delimiter to avoid escaping forward slashes
+- Handles multiple parameters, underscores in parameter names, and special regex characters
+- Created comprehensive test suite with 14 test cases in tests/Unit/PathMatcherTest.php
+- All quality checks pass (analyse, format, test)
+- Files changed: src/PathMatcher.php, tests/Unit/PathMatcherTest.php
+- **Learnings for future iterations:**
+  - Use a delimiter other than `/` for regex patterns (like `~`) to avoid having to escape forward slashes in paths
+  - preg_quote($string, $delimiter) will escape characters based on the delimiter chosen
+  - Named capture groups in PHP regex use the format (?P<name>pattern)
+  - The pattern [^/]+ matches any character except forward slash, perfect for path parameters
+  - Tests should verify both the regex pattern format and actual matching behavior
+  - Trailing slash handling can be done with /?$ at the end of the pattern
+---
