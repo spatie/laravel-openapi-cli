@@ -185,6 +185,87 @@ it('can get the full spec', function () {
         ->and($spec['openapi'])->toBe('3.1.0');
 });
 
+it('can parse a JSON OpenAPI spec file', function () {
+    $tempFile = sys_get_temp_dir().'/openapi_'.uniqid().'.json';
+    file_put_contents($tempFile, json_encode([
+        'openapi' => '3.0.0',
+        'info' => [
+            'title' => 'Test API',
+            'version' => '1.0.0',
+        ],
+        'servers' => [
+            ['url' => 'https://api.example.com'],
+        ],
+        'paths' => [
+            '/test' => [
+                'get' => [
+                    'summary' => 'Test endpoint',
+                ],
+            ],
+        ],
+    ]));
+
+    $parser = new OpenApiParser($tempFile);
+
+    expect($parser)->toBeInstanceOf(OpenApiParser::class)
+        ->and($parser->getServerUrl())->toBe('https://api.example.com')
+        ->and($parser->getPaths())->toHaveKey('/test')
+        ->and($parser->getOperationSummary('/test', 'get'))->toBe('Test endpoint');
+
+    unlink($tempFile);
+});
+
+it('throws exception for invalid JSON', function () {
+    $tempFile = sys_get_temp_dir().'/openapi_'.uniqid().'.json';
+    file_put_contents($tempFile, '{invalid json here');
+
+    try {
+        new OpenApiParser($tempFile);
+    } finally {
+        unlink($tempFile);
+    }
+})->throws(\InvalidArgumentException::class, 'Failed to parse JSON file');
+
+it('auto-detects format based on file extension', function () {
+    $yamlFile = sys_get_temp_dir().'/openapi_'.uniqid().'.yaml';
+    file_put_contents($yamlFile, <<<'YAML'
+openapi: 3.0.0
+info:
+  title: YAML API
+  version: 1.0.0
+paths:
+  /yaml:
+    get:
+      summary: YAML endpoint
+YAML
+    );
+
+    $jsonFile = sys_get_temp_dir().'/openapi_'.uniqid().'.json';
+    file_put_contents($jsonFile, json_encode([
+        'openapi' => '3.0.0',
+        'info' => [
+            'title' => 'JSON API',
+            'version' => '1.0.0',
+        ],
+        'paths' => [
+            '/json' => [
+                'get' => [
+                    'summary' => 'JSON endpoint',
+                ],
+            ],
+        ],
+    ]));
+
+    $yamlParser = new OpenApiParser($yamlFile);
+    $jsonParser = new OpenApiParser($jsonFile);
+
+    expect($yamlParser->getOperationSummary('/yaml', 'get'))->toBe('YAML endpoint')
+        ->and($jsonParser->getOperationSummary('/json', 'get'))->toBe('JSON endpoint');
+
+    unlink($yamlFile);
+    unlink($jsonFile);
+});
+
 it('handles array type in schema correctly', function () {
     $tempFile = sys_get_temp_dir().'/openapi_'.uniqid().'.yaml';
     file_put_contents($tempFile, <<<'YAML'
