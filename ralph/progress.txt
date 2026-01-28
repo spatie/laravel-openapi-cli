@@ -411,3 +411,20 @@
   - Test pattern: use the main test command registered in beforeEach(); avoid registering new commands within individual tests
   - The getOperationSummary() and getOperationDescription() methods return null if not present - use ?? operator for fallback logic
 ---
+## 2026-01-28 - US-023
+- Implemented --schema flag in OpenApiCommand to output full OpenAPI spec as JSON
+- Added outputSchema() protected method that retrieves spec via OpenApiParser::getSpec()
+- JSON output uses JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES, and JSON_UNESCAPED_UNICODE flags for readability
+- Created comprehensive test suite with 7 test cases in tests/Feature/SchemaOutputTest.php
+- Tests verify output contains all major spec sections: openapi, info, paths, components, servers
+- All quality checks pass (composer analyse, format, test - 158 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/SchemaOutputTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The OpenApiParser::getSpec() method provides direct access to the complete parsed spec array
+  - Use JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE for human-readable JSON output
+  - The --schema flag should be checked early in handle() method, similar to --list flag
+  - When testing artisan command output, use expectsOutputToContain() for simple string matching
+  - Avoid trying to capture output with ob_start()/ob_get_clean() in Pest tests - it doesn't work with artisan commands
+  - Keep test assertions simple - checking for key sections is sufficient to verify the output structure
+  - The --schema flag works without requiring an endpoint argument, making it easy for users to inspect specs
+---
