@@ -392,3 +392,22 @@
   - Use $this->line() and $this->error() for console output formatting in Laravel commands
   - The pattern foreach ($paths as $path => $methods) with implode(', ', array_map('strtoupper', $methods)) formats methods nicely
 ---
+## 2026-01-28 - US-022
+- Implemented --list flag in OpenApiCommand to display all endpoints from the spec
+- Added listEndpoints() protected method to handle endpoint listing logic
+- Implemented table formatting with METHOD (7 chars), PATH (dynamic width), and DESCRIPTION columns
+- Implemented sorting: endpoints sorted by path first, then by method (GET, POST, PUT, PATCH, DELETE order)
+- Used getOperationSummary() and getOperationDescription() to display endpoint descriptions
+- Created comprehensive test suite with 5 test cases in tests/Feature/ListEndpointsTest.php
+- All quality checks pass (composer analyse, format, test - 151 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/ListEndpointsTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The --list flag should be checked early in handle() method before requiring the endpoint argument
+  - Laravel's artisan test assertions: expectsOutputToContain() works best when chained sparingly (1-2 assertions per chain)
+  - When multiple expectsOutputToContain() assertions are chained, they may fail unpredictably - better to keep them simple
+  - The usort() function is perfect for multi-level sorting (first by path, then by method priority)
+  - str_pad() creates fixed-width columns for table formatting - use it for METHOD column, calculate max width for PATH column
+  - The listEndpoints() method creates an array of endpoints, sorts them, calculates column widths, then outputs with $this->line()
+  - Test pattern: use the main test command registered in beforeEach(); avoid registering new commands within individual tests
+  - The getOperationSummary() and getOperationDescription() methods return null if not present - use ?? operator for fallback logic
+---
