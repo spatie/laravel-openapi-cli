@@ -85,4 +85,32 @@ class PathMatcher
 
         return $matches;
     }
+
+    /**
+     * Check if matches are ambiguous and format an error message.
+     *
+     * @param  array<int, array{path: string, parameters: array<string, string>, methods: array<int, string>, isExact: bool}>  $matches  Array of matches from matchPath
+     * @param  string  $commandName  Name of the artisan command (e.g., "flare")
+     * @return array{isAmbiguous: bool, message: string|null} Array with ambiguity status and optional error message
+     */
+    public function checkAmbiguity(array $matches, string $commandName): array
+    {
+        // If there are 0 or 1 matches, it's not ambiguous
+        if (count($matches) <= 1) {
+            return ['isAmbiguous' => false, 'message' => null];
+        }
+
+        // Build error message
+        $message = "Ambiguous endpoint. Multiple paths match your input:\n\n";
+
+        foreach ($matches as $match) {
+            $methods = implode(', ', $match['methods']);
+            $message .= "  {$match['path']} ({$methods})\n";
+        }
+
+        $message .= "\nPlease specify which HTTP method you want to use with the --method flag:\n";
+        $message .= "Example: php artisan {$commandName} endpoint --method POST";
+
+        return ['isAmbiguous' => true, 'message' => $message];
+    }
 }

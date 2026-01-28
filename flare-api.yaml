@@ -1,0 +1,1760 @@
+openapi: 3.1.0
+info:
+  title: Flare API
+  description: >-
+    Using our easy-to-use REST API you can administer projects and errors.
+
+
+    ## Getting started
+
+
+    First, you must create an API token in [your account
+    settings](/account/api-tokens).
+
+
+    ![screenshot](/images/docs/api-tokens.jpg)
+
+
+    In all calls to our API endpoint you must include an `api_token` URL
+    parameter or a Bearer token in the Authorization header, and should include
+
+
+    an `Accepts: application/json` header. Here are examples:
+
+
+    Using query parameter:
+
+
+    ```shellscript
+
+    curl "https://flareapp.io/api/projects?api_token=xyz123" \
+
+    -H 'Accept: application/json'
+
+    ```
+
+
+    Using Bearer token:
+
+
+    ```shellscript
+
+    curl "https://flareapp.io/api/projects" \
+
+    -H 'Authorization: Bearer xyz123' \
+
+    -H 'Accept: application/json'
+
+    ```
+
+
+    ### Pagination
+
+
+    All paginated endpoints follow the JSON:API pagination specification.
+
+
+    #### Query Parameters
+
+    - `page[number]` - The page number (default: 1, minimum: 1)
+
+    - `page[size]` - Number of items per page (default: 10, minimum: 1, maximum:
+    30)
+
+
+    #### Response Structure
+
+    All paginated responses include:
+
+    - `data` - Array of items for the current page
+
+    - `meta` - Pagination metadata including current_page, total, per_page, from,
+    to, last_page
+
+    - `links` - Navigation links for first, last, previous, and next pages
+
+
+    #### Example
+
+    ```shellscript
+
+    curl "https://flareapp.io/api/projects?page[number]=2&page[size]=15" \
+
+    -H 'Authorization: Bearer xyz123' \
+
+    -H 'Accept: application/json'
+
+    ```
+  version: 1.0.0
+  contact:
+    name: Flare
+    url: https://flareapp.io
+    email: support@flareapp.io
+  x-logo:
+    url: "https://flareapp.io/android-chrome-512x512.png"
+    backgroundColor: "rgb(250, 250, 250)"
+    altText: "Flare logo"
+servers:
+  - url: https://flareapp.io/api
+security:
+  - UserAPIToken: []
+  - BearerAuth: []
+webhooks:
+  error:
+    post:
+      tags:
+        - webhooks
+      summary: An error webhook received by your system
+      requestBody:
+        description: Happens when an error is resolved, unresolved, snoozed or unsnoozed
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/errorWebhook'
+  project:
+    post:
+      tags:
+        - webhooks
+      summary: An project webhook received by your system
+      requestBody:
+        description: Happens when a project spike protection is activated or deactivated
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/projectWebhook'
+  errorOccurrence:
+    post:
+      tags:
+        - webhooks
+      summary: An error occurrence webhook received by your system
+      requestBody:
+        description: >-
+          Happens when a new error occurs, an error reoccurs, a resolved error
+          reoccurs or an error occurred many times
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/errorOccurrenceWebhook'
+  errorNote:
+    post:
+      tags:
+        - webhooks
+      summary: An error note webhook received by your system
+      requestBody:
+        description: Happens when a new note on an error is created
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/errorNoteWebhook'
+components:
+  securitySchemes:
+    UserAPIToken:
+      type: apiKey
+      in: query
+      name: api_token
+      description: API token passed as a query parameter
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: API token passed as a Bearer token in the Authorization header
+  parameters:
+    PageNumber:
+      in: query
+      name: page[number]
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: The page number to retrieve
+    PageSize:
+      in: query
+      name: page[size]
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 30
+        default: 10
+      description: Number of items per page (maximum 30)
+  schemas:
+    paginatedResult:
+      type:
+        - object
+      properties:
+        data:
+          type:
+            - array
+          items:
+            type:
+              - object
+        meta:
+          type:
+            - object
+          properties:
+            current_page:
+              type:
+                - integer
+              examples:
+                - 1
+            first_page_url:
+              type:
+                - 'null'
+                - string
+              examples:
+                - https://flareapp.io/api/resource?page[number]=1
+            from:
+              type:
+                - integer
+              examples:
+                - 1
+            last_page:
+              type:
+                - integer
+              examples:
+                - 1
+            last_page_url:
+                type:
+                    - 'null'
+                    - string
+                examples:
+                    - https://flareapp.io/api/resource?page[number]=3
+            next_page_url:
+                type:
+                    - 'null'
+                    - string
+                examples:
+                    - https://flareapp.io/api/resource?page[number]=2
+            path:
+                type:
+                    - 'null'
+                    - string
+                examples:
+                    - https://flareapp.io/api/resource
+            per_page:
+                type:
+                    - integer
+                examples:
+                    - 10
+            prev_page_url:
+                type:
+                    - 'null'
+                    - string
+                examples:
+                    - https://flareapp.io/api/resource?page[number]=1
+            to:
+                type:
+                    - integer
+                examples:
+                    - 1
+            total:
+                type:
+                    - integer
+                examples:
+                    - 10
+        links:
+          type:
+            - object
+          properties:
+            url:
+              type:
+                - 'null'
+                - string
+              examples:
+                - https://flareapp.io/api/resource?page[number]=1
+            label:
+              type:
+                - string
+              examples:
+                - Next
+            active:
+              type:
+                - boolean
+              examples:
+                - false
+    minimalUser:
+      type:
+        - object
+      properties:
+        id:
+          type:
+            - integer
+          description: The user's unique identifier.
+          examples:
+            - 1
+        name:
+          type:
+            - string
+          description: The user's name.
+          examples:
+            - Freek Van der Herten
+        email:
+          type:
+            - string
+          description: The user's email address.
+          examples:
+            - freek@spatie.be
+        github_id:
+          type:
+            - 'null'
+            - string
+          description: The user's GitHub ID.
+          examples:
+            - '12345678'
+        google_id:
+          type:
+            - 'null'
+            - string
+          description: The user's Google ID.
+          examples:
+            - '98765432109876543210'
+    baseError:
+      type:
+        - object
+      properties:
+        id:
+          type:
+            - integer
+          description: The error's unique identifier.
+          examples:
+            - 1
+        slug:
+          type:
+            - string
+          description: The error's slug.
+          examples:
+            - an-unexpected-error-occurred
+        entry_point:
+          type:
+            - string
+          description: >-
+            The entry point where the error was first seen. Can be an URL, Job
+            or command.
+          examples:
+            - https://hermiston.biz/et-non-cum-animi-et-repudiandae-ut.html
+        exception_message:
+          type:
+            - string
+          description: The exception message.
+          examples:
+            - Earum ut laborum error quod cumque dolorem et.
+        exception_class:
+          type:
+            - string
+          description: The exception class.
+          examples:
+            - ErrorException
+        exception_code:
+          type:
+            - 'null'
+            - string
+          description: The exception code.
+          examples:
+            - '400'
+        file:
+          type:
+            - string
+          description: The file where the error occurred.
+          examples:
+            - database/faker/ExceptionProvider.php
+        line_number:
+          type:
+            - integer
+          description: The line number where the error occurred.
+          examples:
+            - 123
+        class:
+          type:
+            - string
+          description: The class where the error occurred.
+          examples:
+            - ExceptionProvider
+        method:
+          type:
+            - string
+          description: The method where the error occurred.
+          examples:
+            - createException
+        first_seen_at:
+          type:
+            - string
+          description: The date and time when the error was first seen.
+          examples:
+            - '2021-03-22T10:32:00.000Z'
+        last_seen_at:
+          type:
+            - string
+          description: The date and time when the error was last seen.
+          examples:
+            - '2023-09-25T09:04:25.000Z'
+        occurrence_count:
+          type:
+            - integer
+          description: The number of times the error occurred.
+          examples:
+            - 145
+        affected_user_count:
+          type:
+            - integer
+          description: The number of users that were affected by the error.
+          examples:
+            - 2
+        share_count:
+          type:
+            - integer
+          description: The number of times the error was shared.
+          examples:
+            - 2
+        notifier_client_name:
+          type:
+            - string
+          description: The name of the notifier client.
+          examples:
+            - Laravel Client
+        language_version:
+          type:
+            - string
+          description: The version of the language.
+          examples:
+            - 8.0.0
+        framework_version:
+          type:
+            - string
+          description: The version of the framework.
+          examples:
+            - 10.13.0
+        stage:
+          type:
+            - string
+          description: The stage where the error occurred.
+          examples:
+            - production
+        entry_point_type:
+          type:
+            - string
+          enum:
+            - web
+            - cli
+            - queue
+          description: The type of the entry point.
+          examples:
+            - web
+        application_version:
+          type:
+            - string
+          description: The version of the application.
+          examples:
+            - b1c473b
+        level:
+          type:
+            - 'null'
+            - string
+          enum:
+            - debug
+            - info
+            - notice
+            - warning
+            - error
+            - critical
+            - alert
+            - emergency
+          description: When a message is logged, this will be the level of the message.
+          examples:
+            - error
+        status:
+          type:
+            - string
+          enum:
+            - open
+            - resolved
+          description: The status of the error.
+          examples:
+            - open
+        resolved_by_user_name:
+          type:
+            - 'null'
+            - string
+          description: The name of the user that resolved the error.
+          examples:
+            - Freek Van der Herten
+        resolved_by_channel:
+          type:
+            - 'null'
+            - string
+          enum:
+            - slack
+            - telegram
+            - github
+            - mail
+            - flare
+          description: The channel that resolved the error.
+          examples:
+            - flare
+        resolved_by_channel_label:
+          type:
+            - 'null'
+            - string
+          enum:
+            - Slack
+            - Telegram
+            - GitHub
+            - Mail
+            - Flare
+          description: The label of the channel that resolved the error.
+          examples:
+            - Flare
+        resolved_at:
+          type:
+            - 'null'
+            - string
+          description: The date and time when the error was resolved.
+          examples:
+            - '2023-09-25T09:04:25.000Z'
+        language:
+          type:
+            - string
+          enum:
+            - PHP
+            - javascript
+          description: The language of the project.
+          examples:
+            - PHP
+        latest_occurrence_has_solutions:
+          type:
+            - boolean
+          description: Indicates if the latest occurrence has solutions.
+          examples:
+            - true
+        snooze_type:
+          type:
+            - 'null'
+            - string
+          enum:
+            - snooze_until
+            - snooze_forever
+            - snooze_number_of_occurrences
+            - snooze_application_version
+          description: The type of the snooze.
+          examples:
+            - snooze_until
+        snoozed_at:
+          type:
+            - 'null'
+            - string
+          description: The date and time when the error was snoozed.
+          examples:
+            - '2023-09-25T09:04:25.000Z'
+        snoozed_until:
+          type:
+            - 'null'
+            - string
+          description: The date and time until the error is snoozed.
+          examples:
+            - '2023-09-25T09:04:25.000Z'
+        snoozed_up_to_occurrence_number:
+          type:
+            - 'null'
+            - integer
+          description: The number of occurrences the error is snoozed.
+          examples:
+            - 10
+        snoozed_by_user_name:
+          type:
+            - 'null'
+            - string
+          description: The name of the user that snoozed the error.
+          examples:
+            - Freek Van der Herten
+        snoozed_by_channel:
+          type:
+            - 'null'
+            - string
+          enum:
+            - slack
+            - telegram
+            - github
+            - mail
+            - flare
+          description: The channel that snoozed the error.
+          examples:
+            - flare
+        snoozed_by_channel_label:
+          type:
+            - 'null'
+            - string
+          enum:
+            - Slack
+            - Telegram
+            - GitHub
+            - Mail
+            - Flare
+          description: The label of the channel that snoozed the error.
+          examples:
+            - Flare
+        marked_for_deletion_by_user_name:
+          type:
+            - 'null'
+            - string
+          description: The name of the user that marked the error for deletion.
+          examples:
+            - Freek Van der Herten
+        marked_for_deletion_by_channel:
+          type:
+            - 'null'
+            - string
+          enum:
+            - slack
+            - telegram
+            - github
+            - mail
+            - flare
+          description: The channel that marked the error for deletion.
+          examples:
+            - flare
+        assignees:
+          type:
+            - array
+          description: The users assigned to the error.
+          items:
+            $ref: '#/components/schemas/minimalUser'
+        framework:
+          type:
+            - 'null'
+            - string
+          description: The framework name (e.g., "laravel", "react").
+          examples:
+            - laravel
+        latest_occurrence_url_on_flare:
+          type:
+            - 'null'
+            - string
+          description: The URL to view the latest occurrence on Flare.
+          examples:
+            - https://flareapp.io/teams/1/projects/2/errors/3/occurrences/4
+    baseErrorOccurrence:
+      type:
+        - object
+      properties:
+        id:
+          type:
+            - integer
+          description: The error occurrence's unique identifier.
+          examples:
+            - 1
+        error_id:
+          type:
+            - integer
+          description: The error's unique identifier.
+          examples:
+            - 1
+        received_at:
+          type:
+            - string
+          description: The date and time when the error occurrence was received.
+          examples:
+            - '2023-09-25T09:04:25.000Z'
+        entry_point:
+          type:
+            - 'null'
+            - string
+          description: >-
+            The entry point where the error occurrence was seen. Can be an URL,
+            Job or command.
+          examples:
+            - https://hermiston.biz/et-non-cum-animi-et-repudiandae-ut.html
+        exception_class:
+          type:
+            - 'null'
+            - string
+          description: The exception class.
+          examples:
+            - ErrorException
+        exception_message:
+          type:
+            - 'null'
+            - string
+          description: The exception message.
+          examples:
+            - Earum ut laborum error quod cumque dolorem et.
+        exception_code:
+          type:
+            - 'null'
+            - string
+          description: The exception code.
+          examples:
+            - '400'
+        application_path:
+          type:
+            - 'null'
+            - string
+          description: The path of the application.
+          examples:
+            - /var/www/html
+        application_version:
+          type:
+            - 'null'
+            - string
+          description: The version of the application.
+          examples:
+            - b1c473b
+        notifier_client_name:
+          type:
+            - 'null'
+            - string
+          description: The name of the notifier client.
+          examples:
+            - Laravel Client
+        language_version:
+          type:
+            - 'null'
+            - string
+          description: The version of the language.
+          examples:
+            - 8.0.0
+        framework_version:
+          type:
+            - 'null'
+            - string
+          description: The version of the framework.
+          examples:
+            - 10.13.0
+        stage:
+          type:
+            - 'null'
+            - string
+          description: The stage where the error occurred.
+          examples:
+            - production
+        entry_point_type:
+          type:
+            - 'null'
+            - string
+          enum:
+            - web
+            - cli
+            - queue
+          description: The type of the entry point.
+          examples:
+            - web
+    baseProject:
+      type:
+        - object
+      properties:
+        id:
+          type:
+            - integer
+          description: The project's unique identifier.
+          examples:
+            - 1
+        name:
+          type:
+            - string
+          description: The project's name.
+          examples:
+            - Flare
+        slug:
+          type:
+            - string
+          description: The project's slug.
+          examples:
+            - flare
+        group_name:
+          type:
+            - 'null'
+            - string
+          description: The project's group name.
+          examples:
+            - Flare
+        errors_last_7_days_count:
+          type:
+            - integer
+          description: The number of errors that occurred in the last 7 days.
+          examples:
+            - 10
+        errors_previous_7_days_count:
+          type:
+            - integer
+          description: The number of errors that occurred in the between 7 and 14 days.
+          examples:
+            - 5
+        unresolved_errors_count:
+          type:
+            - integer
+          description: The number of unresolved errors.
+          examples:
+            - 2
+        last_error_received_at:
+          type:
+            - string
+          description: The date and time of the last error that occurred.
+          examples:
+            - '2023-09-25T09:04:25.000Z'
+        spike_protection_active_until:
+          type:
+            - 'null'
+            - string
+          description: The date and time until the spike protection is active.
+          examples:
+            - '2023-09-25T09:04:25.000Z'
+        protect_against_spikes:
+          type:
+            - boolean
+          description: Indicates if the project is spike protection is enabled.
+          examples:
+            - true
+        stage:
+          type:
+            - string
+          enum:
+            - local
+            - development
+            - staging
+            - production
+          description: The project's stage.
+          examples:
+            - production
+        technology:
+          type:
+            - string
+          enum:
+            - Laravel
+            - PHP
+            - JS
+            - Vue
+            - React
+          description: The project's technology.
+          examples:
+            - PHP
+    baseTeam:
+      type:
+        - object
+      properties:
+        id:
+          type:
+            - integer
+          description: The team's unique identifier.
+          examples:
+            - 1
+        name:
+          type:
+            - string
+          description: The team's name.
+          examples:
+            - Spatie
+        slug:
+          type:
+            - string
+          description: The team's slug.
+          examples:
+            - spatie
+    user:
+      type:
+        - object
+      properties:
+        id:
+          type:
+            - integer
+          description: The user's unique identifier.
+          examples:
+            - 1
+        name:
+          type:
+            - string
+          description: The user's name.
+          examples:
+            - Freek
+        email:
+          type:
+            - string
+          description: The user's email address.
+          examples:
+            - freek@spatie.be
+        photo_url:
+          type:
+            - 'null'
+            - string
+          description: The user's avatar URL.
+          examples:
+            - >-
+              https://www.gravatar.com/avatar/a1b4b398630bbd32b77a82cbc37fae9a.jpg?s=200&d=mm
+        teams:
+          type:
+            - array
+          description: The teams the user belongs to.
+          examples:
+            - - id: 1
+                name: Spatie
+              - id: 2
+                name: Oh Dear
+          items:
+            $ref: '#/components/schemas/baseTeam'
+    team:
+      allOf:
+        - $ref: '#/components/schemas/baseTeam'
+        - type:
+            - object
+          properties:
+            users:
+              type:
+                - array
+              description: The users that belong to the team.
+              items:
+                $ref: '#/components/schemas/teamUser'
+    teamUser:
+      type:
+        - object
+      properties:
+        user_id:
+          type:
+            - integer
+          description: The user's unique identifier.
+          examples:
+            - 1
+        team_id:
+          type:
+            - integer
+          description: The team's unique identifier.
+          examples:
+            - 1
+        user_email:
+          type:
+            - string
+          description: The user's email address.
+          examples:
+            - freek@spatie.be
+        role:
+          type:
+            - string
+          enum:
+            - admin
+            - owner
+            - member
+          description: The user's role within the team.
+          examples:
+            - admin
+    error:
+      allOf:
+        - $ref: '#/components/schemas/baseError'
+    errorOccurrenceContextItem:
+      type:
+        - object
+      properties:
+        group:
+          type:
+            - string
+          description: The group of the context item.
+          examples:
+            - request
+        key:
+          type:
+            - string
+          description: The key of the context item.
+          examples:
+            - user_agent
+        value:
+          type:
+            - string
+          description: The value of the context item.
+          examples:
+            - >-
+              Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36
+              (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36
+    errorOccurrenceFrame:
+      type:
+        - object
+      properties:
+        file:
+          type:
+            - string
+          description: The file of the frame.
+          examples:
+            - >-
+              /var/www/html/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Concerns/HasAttributes.php
+        relative_file:
+          type:
+            - string
+          description: The relative file of the frame.
+          examples:
+            - >-
+              vendor/laravel/framework/src/Illuminate/Database/Eloquent/Concerns/HasAttributes.php
+        line_number:
+          type:
+            - integer
+          description: The line number of the frame.
+          examples:
+            - 123
+        class:
+          type:
+            - string
+          description: The class of the frame.
+          examples:
+            - Illuminate\Database\Eloquent\Model
+        method:
+          type:
+            - string
+          description: The method of the frame.
+          examples:
+            - setAttribute
+        code_snippet:
+          type:
+            - array
+          description: The code of the frame.
+          items:
+            type:
+              - string
+        application_frame:
+          type:
+            - boolean
+          description: Indicates if the frame is an application frame.
+          examples:
+            - true
+    errorOccurrenceEvent:
+      type:
+        - object
+      properties:
+        id:
+          type:
+            - integer
+          description: The event's unique identifier.
+          examples:
+            - 1
+        microtime:
+          type:
+            - integer
+          description: The time of the event.
+          examples:
+            - 1616421120
+        received_at:
+          type:
+            - string
+          description: The date and time when the event was received.
+          examples:
+            - '2023-09-25T09:04:25.000Z'
+        name:
+          type:
+            - string
+          description: The name of the event.
+          examples:
+            - Event name
+        level:
+          type:
+            - string
+          description: The message level of the event.
+          examples:
+            - error
+        meta_data:
+          type:
+            - object
+          description: The meta data of the event.
+          examples:
+            - key: value
+    errorOccurrenceSolution:
+      type:
+        - object
+      properties:
+        id:
+          type:
+            - integer
+          description: The solution's unique identifier.
+          examples:
+            - 1
+        title:
+          type:
+            - string
+          description: The title of the solution.
+          examples:
+            - Solution title
+        description:
+          type:
+            - string
+          description: The description of the solution.
+          examples:
+            - Solution description
+        links:
+          type:
+            - array
+          description: Links to external resources.
+          items:
+            type:
+              - string
+        action_description:
+          type:
+            - string
+          description: The action description of the solution.
+          examples:
+            - Solution action description
+        is_runnable:
+          type:
+            - boolean
+          description: Indicates if the solution is runnable.
+          examples:
+            - true
+    errorOccurrence:
+      allOf:
+        - $ref: '#/components/schemas/baseErrorOccurrence'
+        - type:
+            - object
+          properties:
+            attributes:
+              type:
+                - array
+              description: The attributes of the error occurrence.
+              items:
+                $ref: '#/components/schemas/errorOccurrenceContextItem'
+            frames:
+              type:
+                - array
+              description: The frames of the error occurrence.
+              items:
+                $ref: '#/components/schemas/errorOccurrenceFrame'
+            events:
+              type:
+                - array
+              description: The events of the error occurrence.
+              items:
+                $ref: '#/components/schemas/errorOccurrenceEvent'
+            solutions:
+              type:
+                - array
+              description: The solutions of the error occurrence.
+              items:
+                $ref: '#/components/schemas/errorOccurrenceSolution'
+            error:
+              $ref: '#/components/schemas/error'
+    project:
+      allOf:
+        - $ref: '#/components/schemas/baseProject'
+        - type:
+            - object
+          properties:
+            api_key:
+              type:
+                - string
+              description: The project's API key.
+              examples:
+                - 1mrPDGjWcmz9ACC2A4zzkzN1zAltKUKl
+            api_public_key:
+              type:
+                - string
+              description: >-
+                The project's API key which can be used in your frontend
+                application.
+              examples:
+                - DZWbDKHd1quYsIlQUI97fTcRG5cBkEC0
+            team:
+              $ref: '#/components/schemas/baseTeam'
+    errorWebhook:
+      type:
+        - object
+      properties:
+        type:
+          type:
+            - string
+          description: The type of the webhook.
+          enum:
+            - ErrorResolvedNotification
+            - ErrorSnoozedNotification
+            - ErrorUnresolvedNotification
+            - ErrorUnsnoozedNotification
+          examples:
+            - ErrorResolvedNotification
+        error:
+          $ref: '#/components/schemas/webhookError'
+    projectWebhook:
+      type:
+        - object
+      properties:
+        type:
+          type:
+            - string
+          description: The type of the webhook.
+          enum:
+            - SpikeProtectionActivatedNotification
+            - SpikeProtectionDeactivatedNotification
+          examples:
+            - SpikeProtectionDeactivatedNotification
+        project:
+          $ref: '#/components/schemas/webhookProject'
+    errorOccurrenceWebhook:
+      type:
+        - object
+      properties:
+        type:
+          type:
+            - string
+          description: The type of the webhook.
+          enum:
+            - ErrorOccurredManyTimesNotification
+            - ErrorReoccurredNotification
+            - NewErrorOccurredNotification
+            - ResolvedErrorReoccurredNotification
+          examples:
+            - ErrorOccurrenceNotification
+        errorOccurrence:
+          $ref: '#/components/schemas/webhookErrorOccurrence'
+    errorNoteWebhook:
+      type:
+        - object
+      properties:
+        type:
+          type:
+            - string
+          description: The type of the webhook.
+          enum:
+            - ErrorNoteCreatedNotification
+          examples:
+            - ErrorNoteCreatedNotification
+        comment:
+          type:
+            - string
+          description: The comment that was added to the error.
+        user:
+          type:
+            - string
+          description: The email of the user that added the comment.
+        error:
+          $ref: '#/components/schemas/webhookError'
+    webhookError:
+      allOf:
+        - $ref: '#/components/schemas/baseError'
+        - type:
+            - object
+          properties:
+            project:
+              $ref: '#/components/schemas/webhookProject'
+    webhookErrorOccurrence:
+      allOf:
+        - $ref: '#/components/schemas/baseErrorOccurrence'
+        - type:
+            - object
+          properties:
+            error:
+              $ref: '#/components/schemas/webhookErrorOccurrence'
+    webhookTeam:
+      $ref: '#/components/schemas/baseTeam'
+    webhookProject:
+      allOf:
+        - $ref: '#/components/schemas/baseProject'
+        - type:
+            - object
+          properties:
+            team:
+              $ref: '#/components/schemas/webhookTeam'
+paths:
+  /me:
+    get:
+      tags:
+        - user
+      summary: Get the authenticated user.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+  /projects:
+    get:
+      tags:
+        - projects
+      summary: Get all projects.
+      parameters:
+        - in: query
+          name: filter[id]
+          required: false
+          schema:
+            type:
+              - integer
+          description: The project identifier.
+        - in: query
+          name: filter[name]
+          required: false
+          schema:
+            type:
+              - string
+          description: The project name.
+        - in: query
+          name: filter[team_id]
+          required: false
+          schema:
+            type:
+              - integer
+          description: The team identifier.
+        - in: query
+          name: include
+          required: false
+          schema:
+            type:
+              - string
+            enum:
+              - team
+          description: Include information about the team.
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/paginatedResult'
+                  - type:
+                      - object
+                    properties:
+                      data:
+                        type:
+                          - array
+                        items:
+                          $ref: '#/components/schemas/project'
+    post:
+      tags:
+        - projects
+      summary: Create a new project.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - team_id
+                - stage
+                - technology
+              properties:
+                name:
+                  type:
+                    - string
+                  description: The project's name.
+                  examples:
+                    - Flare
+                team_id:
+                  type:
+                    - integer
+                  description: The team's identifier.
+                  examples:
+                    - 1
+                stage:
+                  type:
+                    - string
+                  enum:
+                    - local
+                    - development
+                    - staging
+                    - production
+                  description: The project's stage.
+                  examples:
+                    - production
+                technology:
+                  type:
+                    - string
+                  enum:
+                    - Laravel
+                    - PHP
+                    - JS
+                    - Vue
+                    - React
+                  description: The project's technology.
+                  examples:
+                    - PHP
+                group:
+                  type:
+                    - 'null'
+                    - string
+                  examples:
+                    - Flare dev
+                  description: The project's group.
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/project'
+  /projects/{project_id}/errors:
+    get:
+      tags:
+        - errors
+      summary: Get all errors within a project.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The project identifier.
+        - in: query
+          name: filter[id]
+          required: false
+          schema:
+            type:
+              - integer
+          description: The project identifier.
+        - in: query
+          name: filter[exception_message]
+          required: false
+          schema:
+            type:
+              - string
+          description: The exception message of the error.
+        - in: query
+          name: filter[exception_class]
+          required: false
+          schema:
+            type:
+              - string
+          description: The exception class of the error.
+        - in: query
+          name: filter[file]
+          required: false
+          schema:
+            type:
+              - string
+          description: The file where the error occurred.
+        - in: query
+          name: filter[status]
+          required: false
+          schema:
+            type:
+              - string
+            enum:
+              - open
+              - resolved
+          description: The status of the error.
+        - in: query
+          name: filter[stage]
+          required: false
+          schema:
+            type:
+              - string
+          description: The stage of the error.
+        - in: query
+          name: filter[level]
+          required: false
+          schema:
+            type:
+              - string
+            enum:
+              - debug
+              - info
+              - notice
+              - warning
+              - error
+              - critical
+              - alert
+              - emergency
+          description: The message log level of the error.
+        - in: query
+          name: filter[first_seen_at]
+          required: false
+          schema:
+            type:
+              - string
+          description: The date and time when the error was first seen.
+        - in: query
+          name: filter[last_seen_at]
+          required: false
+          schema:
+            type:
+              - string
+          description: The date and time when the error was last seen.
+        - in: query
+          name: filter[resolved_at]
+          required: false
+          schema:
+            type:
+              - string
+          description: The date and time when the error was resolved.
+        - in: query
+          name: filter[seen_between]
+          required: false
+          schema:
+            type:
+              - string
+            examples:
+              - 2020-07-16T16:41:59Z,2020-08-16T16:41:59Z
+          description: The date and time when the error was seen between.
+        - in: query
+          name: include
+          required: false
+          schema:
+            type:
+              - string
+            enum:
+              - assignees
+          description: Include related resources. Use 'assignees' to include assigned users.
+        - in: query
+          name: sort
+          required: false
+          schema:
+            type:
+              - string
+            enum:
+              - first_seen_at
+              - last_seen_at
+              - '-first_seen_at'
+              - '-last_seen_at'
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/paginatedResult'
+                  - type:
+                      - object
+                    properties:
+                      data:
+                        type:
+                          - array
+                        items:
+                          $ref: '#/components/schemas/error'
+    delete:
+      tags:
+        - projects
+      summary: Delete a project.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The project identifier.
+      responses:
+        '204':
+          description: Successful response
+  /projects/{project_id}/error-count:
+    get:
+      tags:
+        - errors
+      summary: Get the number of errors in the given period.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The project identifier.
+        - in: query
+          name: start_date
+          required: true
+          description: The start date of the period.
+          schema:
+            type:
+              - string
+            examples:
+              - '2021-01-01T00:00:00.000Z'
+        - in: query
+          name: end_date
+          required: true
+          description: The end date of the period.
+          schema:
+            type:
+              - string
+            examples:
+              - '2021-01-31T23:59:59.000Z'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type:
+                  - object
+                properties:
+                  count:
+                    type:
+                      - integer
+                    description: The number of errors that occurred.
+  /projects/{project_id}/error-occurrence-count:
+    get:
+      tags:
+        - errors
+      summary: Get the number of error occurrences in the given period.
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The project identifier.
+        - in: query
+          name: start_date
+          required: true
+          description: The start date of the period.
+          schema:
+            type:
+              - string
+            examples:
+              - '2021-01-01T00:00:00.000Z'
+        - in: query
+          name: end_date
+          required: true
+          description: The end date of the period.
+          schema:
+            type:
+              - string
+            examples:
+              - '2021-01-31T23:59:59.000Z'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type:
+                  - object
+                properties:
+                  count:
+                    type:
+                      - integer
+                    description: The number of error occurrences that occurred.
+  /teams/{team_id}:
+    get:
+      tags:
+        - teams
+      summary: Get a team.
+      parameters:
+        - in: path
+          name: team_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The team identifier.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/team'
+  /teams/{team_id}/users/{user_id}:
+    delete:
+      tags:
+        - teams
+      summary: Remove a user from a team.
+      parameters:
+        - in: path
+          name: team_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The team identifier.
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The user identifier.
+      responses:
+        '200':
+          description: Successful response
+  /errors/{error_id}/occurrences:
+    get:
+      tags:
+        - error occurrences
+      summary: Get all occurrences for an error.
+      parameters:
+        - in: path
+          name: error_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The error identifier.
+        - in: query
+          name: sort
+          required: false
+          schema:
+            type:
+              - string
+            enum:
+              - received_at
+              - '-received_at'
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/paginatedResult'
+                  - type:
+                      - object
+                    properties:
+                      data:
+                        type:
+                          - array
+                        items:
+                          $ref: '#/components/schemas/errorOccurrence'
+  /errors/{error_id}/resolve:
+    post:
+      tags:
+        - errors
+      summary: Resolve an error.
+      parameters:
+        - in: path
+          name: error_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The error identifier.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /errors/{error_id}/open:
+    post:
+      tags:
+        - errors
+      summary: Reopen an error.
+      parameters:
+        - in: path
+          name: error_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The error identifier.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /error-occurrences/{occurrence_id}:
+    get:
+      tags:
+        - error occurrences
+      summary: Get an error occurrence.
+      parameters:
+        - in: path
+          name: occurrence_id
+          required: true
+          schema:
+            type:
+              - integer
+          description: The error occurrence identifier.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorOccurrence'

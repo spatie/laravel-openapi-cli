@@ -277,3 +277,177 @@ it('matchPath does not match paths with missing segments', function () {
 
     expect($matches)->toBe([]);
 });
+
+// Tests for checkAmbiguity method
+it('detects no ambiguity when zero matches', function () {
+    $matcher = new PathMatcher;
+    $matches = [];
+
+    $result = $matcher->checkAmbiguity($matches, 'flare');
+
+    expect($result['isAmbiguous'])->toBeFalse();
+    expect($result['message'])->toBeNull();
+});
+
+it('detects no ambiguity when single match', function () {
+    $matcher = new PathMatcher;
+    $matches = [
+        [
+            'path' => '/projects',
+            'parameters' => [],
+            'methods' => ['GET', 'POST'],
+            'isExact' => true,
+        ],
+    ];
+
+    $result = $matcher->checkAmbiguity($matches, 'flare');
+
+    expect($result['isAmbiguous'])->toBeFalse();
+    expect($result['message'])->toBeNull();
+});
+
+it('detects ambiguity when multiple matches exist', function () {
+    $matcher = new PathMatcher;
+    $matches = [
+        [
+            'path' => '/projects/{id}',
+            'parameters' => ['id' => '123'],
+            'methods' => ['GET'],
+            'isExact' => false,
+        ],
+        [
+            'path' => '/projects/{projectId}',
+            'parameters' => ['projectId' => '123'],
+            'methods' => ['POST', 'PUT'],
+            'isExact' => false,
+        ],
+    ];
+
+    $result = $matcher->checkAmbiguity($matches, 'flare');
+
+    expect($result['isAmbiguous'])->toBeTrue();
+    expect($result['message'])->not->toBeNull();
+});
+
+it('formats error message with all matching paths', function () {
+    $matcher = new PathMatcher;
+    $matches = [
+        [
+            'path' => '/projects/{id}',
+            'parameters' => ['id' => '123'],
+            'methods' => ['GET'],
+            'isExact' => false,
+        ],
+        [
+            'path' => '/projects/{projectId}',
+            'parameters' => ['projectId' => '123'],
+            'methods' => ['POST', 'PUT'],
+            'isExact' => false,
+        ],
+    ];
+
+    $result = $matcher->checkAmbiguity($matches, 'flare');
+
+    expect($result['message'])->toContain('Ambiguous endpoint');
+    expect($result['message'])->toContain('/projects/{id} (GET)');
+    expect($result['message'])->toContain('/projects/{projectId} (POST, PUT)');
+});
+
+it('includes --method flag suggestion in error message', function () {
+    $matcher = new PathMatcher;
+    $matches = [
+        [
+            'path' => '/projects/{id}',
+            'parameters' => ['id' => '123'],
+            'methods' => ['GET'],
+            'isExact' => false,
+        ],
+        [
+            'path' => '/projects/{projectId}',
+            'parameters' => ['projectId' => '123'],
+            'methods' => ['POST'],
+            'isExact' => false,
+        ],
+    ];
+
+    $result = $matcher->checkAmbiguity($matches, 'flare');
+
+    expect($result['message'])->toContain('--method flag');
+    expect($result['message'])->toContain('php artisan flare endpoint --method POST');
+});
+
+it('uses correct command name in error message', function () {
+    $matcher = new PathMatcher;
+    $matches = [
+        [
+            'path' => '/users/{id}',
+            'parameters' => ['id' => '456'],
+            'methods' => ['GET'],
+            'isExact' => false,
+        ],
+        [
+            'path' => '/users/{userId}',
+            'parameters' => ['userId' => '456'],
+            'methods' => ['DELETE'],
+            'isExact' => false,
+        ],
+    ];
+
+    $result = $matcher->checkAmbiguity($matches, 'my-api');
+
+    expect($result['message'])->toContain('php artisan my-api endpoint --method');
+});
+
+it('formats message with multiple methods per path', function () {
+    $matcher = new PathMatcher;
+    $matches = [
+        [
+            'path' => '/projects',
+            'parameters' => [],
+            'methods' => ['GET', 'POST', 'PUT', 'DELETE'],
+            'isExact' => true,
+        ],
+        [
+            'path' => '/projects/{id}',
+            'parameters' => ['id' => 'projects'],
+            'methods' => ['PATCH'],
+            'isExact' => false,
+        ],
+    ];
+
+    $result = $matcher->checkAmbiguity($matches, 'api');
+
+    expect($result['message'])->toContain('/projects (GET, POST, PUT, DELETE)');
+    expect($result['message'])->toContain('/projects/{id} (PATCH)');
+});
+
+it('handles ambiguity with more than two matches', function () {
+    $matcher = new PathMatcher;
+    $matches = [
+        [
+            'path' => '/resource/{id}',
+            'parameters' => ['id' => 'test'],
+            'methods' => ['GET'],
+            'isExact' => false,
+        ],
+        [
+            'path' => '/resource/{resourceId}',
+            'parameters' => ['resourceId' => 'test'],
+            'methods' => ['POST'],
+            'isExact' => false,
+        ],
+        [
+            'path' => '/resource/{item}',
+            'parameters' => ['item' => 'test'],
+            'methods' => ['DELETE'],
+            'isExact' => false,
+        ],
+    ];
+
+    $result = $matcher->checkAmbiguity($matches, 'test');
+
+    expect($result['isAmbiguous'])->toBeTrue();
+    expect($result['message'])->toContain('/resource/{id}');
+    expect($result['message'])->toContain('/resource/{resourceId}');
+    expect($result['message'])->toContain('/resource/{item}');
+});
