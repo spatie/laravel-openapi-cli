@@ -55,6 +55,15 @@ class OpenApiCommand extends Command
         // Check if path was found
         if (empty($matches)) {
             $this->error('Endpoint not found in OpenAPI spec.');
+            $this->line('');
+            $this->line('Available endpoints:');
+
+            $pathsWithMethods = $parser->getPathsWithMethods();
+
+            foreach ($pathsWithMethods as $path => $methods) {
+                $methodList = implode(', ', array_map('strtoupper', $methods));
+                $this->line("  {$methodList}  {$path}");
+            }
 
             return self::FAILURE;
         }
