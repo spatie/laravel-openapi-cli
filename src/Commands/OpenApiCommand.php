@@ -74,9 +74,30 @@ class OpenApiCommand extends Command
         // Parse form fields if provided
         $fields = $this->parseFields($this->option('field'));
 
-        // Determine HTTP method (auto-detect POST when --field is used, default to GET)
+        // Parse JSON input if provided
+        $jsonInput = $this->option('input');
+        $jsonData = null;
+        if ($jsonInput) {
+            // Validate JSON
+            try {
+                $jsonData = json_decode($jsonInput, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException $e) {
+                $this->error('Invalid JSON input: '.$e->getMessage());
+
+                return self::FAILURE;
+            }
+        }
+
+        // Handle conflict: both --field and --input provided
+        if (! empty($fields) && $jsonData !== null) {
+            $this->error('Cannot use both --field and --input options. Use --input for JSON data or --field for form fields, not both.');
+
+            return self::FAILURE;
+        }
+
+        // Determine HTTP method (auto-detect POST when --field or --input is used, default to GET)
         $method = $this->option('method');
-        if (! $method && ! empty($fields)) {
+        if (! $method && (! empty($fields) || $jsonData !== null)) {
             $method = 'POST';
         }
         $method = strtoupper($method ?? 'GET');
@@ -109,8 +130,13 @@ class OpenApiCommand extends Command
         $http = Http::asJson();
         $http = $this->applyAuthentication($http);
 
-        // Determine how to send the request based on fields
-        if (! empty($fields)) {
+        // Determine how to send the request based on data type
+        if ($jsonData !== null) {
+            // Send as JSON (always use application/json for --input)
+            $response = $http->send($method, $url, [
+                'json' => $jsonData,
+            ]);
+        } elseif (! empty($fields)) {
             // Get content types from spec to determine format
             $contentTypes = $parser->getRequestBodyContentTypes($match['path'], strtolower($method));
 
@@ -127,7 +153,7 @@ class OpenApiCommand extends Command
                 ]);
             }
         } else {
-            // No fields, just send the request
+            // No data, just send the request
             $response = $http->send($method, $url);
         }
 
