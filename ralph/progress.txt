@@ -294,3 +294,23 @@
   - Follow the pattern from GetRequestExecutionTest.php for test structure
   - Query parameters can be combined with path parameters, POST methods, and other options
 ---
+
+## 2026-01-28 - US-017
+- Created comprehensive test suite for --method flag functionality
+- Added 11 test cases in tests/Feature/MethodOverrideTest.php
+- Tests cover all HTTP methods (GET, POST, PUT, PATCH, DELETE)
+- Tests verify case-insensitive method names work correctly
+- Tests validate method is allowed for matched path in spec
+- Tests verify clear error messages when method not defined for path
+- All quality checks pass (118 tests total, analyse, format)
+- Files changed: tests/Feature/MethodOverrideTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The --method flag functionality was already fully implemented in US-014 (src/Commands/OpenApiCommand.php:75-83)
+  - This is another example of efficient implementation where related features were built together
+  - Method validation happens at line 78-83: checks if method is in the allowed methods array
+  - strtoupper() is used to normalize method names for case-insensitive comparison (line 75)
+  - Clear error messages show both the invalid method and available methods for debugging
+  - Test suite structure: create OpenAPI spec with multiple methods per endpoint to test validation
+  - Always verify existing functionality before implementing - check both code AND tests
+  - Comprehensive test coverage ensures all acceptance criteria are met even if code already exists
+---
