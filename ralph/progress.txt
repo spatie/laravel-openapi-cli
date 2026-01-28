@@ -166,3 +166,22 @@
   - The resolveBaseUrl() method prioritizes: 1) configured baseUrl, 2) spec servers[0].url, 3) throw exception
   - RuntimeException is appropriate for configuration errors that should halt execution
 ---
+## 2026-01-28 - US-009
+- Implemented applyAuthentication() protected method in OpenApiCommand
+- Method accepts PendingRequest and applies configured authentication headers
+- Bearer token authentication uses Laravel's withToken() method
+- Also implemented API key (withHeader), basic auth (withBasicAuth), and callable auth
+- Authentication methods are prioritized: bearer > apiKey > basic > callable
+- Created comprehensive test suite with 7 test cases in tests/Unit/AuthenticationTest.php
+- All quality checks pass (analyse, format, test - 88 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Unit/AuthenticationTest.php
+- **Learnings for future iterations:**
+  - Use Http::withHeaders([]) to create a PendingRequest instance for testing (Http::fake() returns Factory)
+  - Laravel's HTTP client provides withToken(), withHeader(), and withBasicAuth() methods
+  - Bearer token format is automatically handled by withToken() (adds "Bearer " prefix)
+  - Basic auth encoding is automatically handled by withBasicAuth() (base64 encodes credentials)
+  - Callable auth should be invoked fresh on each request to support dynamic token retrieval
+  - When testing protected methods, use ReflectionClass to access them in tests
+  - Http::assertSent() can verify headers were correctly applied in test assertions
+  - The applyAuthentication method implements a priority system for multiple auth configs
+---

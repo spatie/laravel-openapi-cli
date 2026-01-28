@@ -196,7 +196,7 @@
         "Code formatting passes (`composer format`)"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
