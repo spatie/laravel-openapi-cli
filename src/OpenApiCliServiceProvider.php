@@ -4,7 +4,6 @@ namespace Spatie\OpenApiCli;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Spatie\OpenApiCli\Commands\OpenApiCliCommand;
 
 class OpenApiCliServiceProvider extends PackageServiceProvider
 {
@@ -17,9 +16,6 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
          */
         $package
             ->name('laravel-openapi-cli')
-            ->hasConfigFile()
-            ->hasViews()
-            ->hasMigration('create_laravel_openapi_cli_table')
-            ->hasCommand(OpenApiCliCommand::class);
+            ->hasConfigFile();
     }
 }
