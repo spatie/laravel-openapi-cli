@@ -513,3 +513,17 @@
   - The --include flag combines well with other flags (--minify, --query, etc.) without conflicts
   - Test assertions should use expectsOutputToContain() for checking specific lines in multi-line output
 ---
+## 2026-01-29 - US-028
+- Implemented non-JSON response detection with content-type notice in outputResponse() method
+- Added notice showing content-type when response is not valid JSON: "Response is not JSON (content-type: {type})"
+- Updated existing tests for non-JSON responses (HTML, plain text, invalid JSON) to expect the notice
+- All quality checks pass (composer analyse, format, test - 192 tests passing with 438 assertions)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/OutputFormattingTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The json_decode() + json_last_error() pattern was already in place from US-025, just needed to add the content-type notice
+  - Use ?: operator instead of ?? when PHPStan complains about non-nullable expressions (more lenient type checking)
+  - Laravel's Response::header() can return null even though PHPDoc says it returns string - use ?: for fallback
+  - When updating tests, use expectsOutputToContain() instead of expectsOutput() to allow for multi-line output
+  - The implementation already handled non-JSON responses by outputting raw body - just needed to add the informative notice
+  - Content-Type header format from Laravel HTTP client is the full MIME type (e.g., "text/html", "text/plain", "application/json")
+---
