@@ -353,3 +353,26 @@
   - Error messages should guide users to the correct usage (e.g., "Use --input for JSON data or --field for form fields")
 ---
 
+## 2026-01-28 - US-020
+- Implemented file upload functionality with @ prefix detection in parseFields() method
+- Modified parseFields() to return structured array with 'fields' and 'files' keys
+- Added file validation: checks file_exists() and is_readable() before sending
+- Implemented multipart/form-data request building with proper structure (name, contents, filename)
+- Uses Http::withOptions([]) instead of Http::asJson() for multipart requests to avoid header conflicts
+- Supports multiple file uploads and mixing files with regular fields in same request
+- Auto-detects POST method when file uploads are present (alongside --field and --input detection)
+- Created comprehensive test suite with 10 test cases in tests/Feature/FileUploadTest.php
+- Tests verify multipart body content using str_contains() on request body (hasFile() doesn't parse faked multipart correctly)
+- All quality checks pass (composer analyse, format, test - 146 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/FileUploadTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The @ prefix detection uses str_starts_with() and substr() to extract the file path
+  - Laravel HTTP client multipart data is built as array of ['name', 'contents', 'filename'] structures
+  - When using multipart, don't use Http::asJson() as it sets conflicting headers - use Http::withOptions([]) instead
+  - In tests with Http::fake(), multipart data is in the request body, not accessible via hasFile() method reliably
+  - Use str_contains($request->body(), 'name="fieldname"') to verify multipart data in tests
+  - The parseFields() method now returns ['fields' => [...], 'files' => [...]] structure for separation
+  - File path validation should happen BEFORE building the HTTP request to provide clear error messages
+  - The multipart option takes precedence over form_params and json options in Http::send()
+  - Regular fields in multipart requests don't need 'filename' key, only file uploads do
+---
