@@ -43,6 +43,11 @@ class OpenApiCommand extends Command
             return $this->listEndpoints($parser);
         }
 
+        // Handle --schema flag (output full OpenAPI spec as JSON)
+        if ($this->option('schema')) {
+            return $this->outputSchema($parser);
+        }
+
         $endpoint = $this->argument('endpoint');
 
         // Get endpoint path
@@ -389,6 +394,21 @@ class OpenApiCommand extends Command
             $path = str_pad($endpoint['path'], $maxPathWidth);
             $this->line("{$method}{$path}  {$endpoint['description']}");
         }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Output the full OpenAPI spec as JSON.
+     */
+    protected function outputSchema(OpenApiParser $parser): int
+    {
+        $spec = $parser->getSpec();
+
+        // Pretty-print JSON by default
+        $json = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        $this->line($json);
 
         return self::SUCCESS;
     }
