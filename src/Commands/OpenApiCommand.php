@@ -4,6 +4,7 @@ namespace Spatie\OpenApiCli\Commands;
 
 use Illuminate\Console\Command;
 use Spatie\OpenApiCli\CommandConfiguration;
+use Spatie\OpenApiCli\OpenApiParser;
 
 class OpenApiCommand extends Command
 {
@@ -27,5 +28,32 @@ class OpenApiCommand extends Command
         $this->info('Spec path: '.$this->config->getSpecPath());
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Resolve the base URL from configuration or spec.
+     * Throws an exception if no base URL is available.
+     */
+    protected function resolveBaseUrl(): string
+    {
+        // Check if base URL is overridden in configuration
+        $configuredBaseUrl = $this->config->getBaseUrl();
+
+        if ($configuredBaseUrl !== null) {
+            return $configuredBaseUrl;
+        }
+
+        // Fall back to spec's servers[0].url
+        $parser = new OpenApiParser($this->config->getSpecPath());
+        $specBaseUrl = $parser->getServerUrl();
+
+        if ($specBaseUrl !== null) {
+            return $specBaseUrl;
+        }
+
+        // No base URL available
+        throw new \RuntimeException(
+            'No base URL available. Either configure one using ->baseUrl() or ensure your OpenAPI spec has a servers array.'
+        );
     }
 }
