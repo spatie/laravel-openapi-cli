@@ -97,3 +97,21 @@
   - Tests should verify both the regex pattern format and actual matching behavior
   - Trailing slash handling can be done with /?$ at the end of the pattern
 ---
+## 2026-01-28 - US-006
+- Implemented matchPath() method in PathMatcher class
+- Added user input matching against OpenAPI spec paths with parameter extraction
+- Implemented slash normalization (leading/trailing slash equivalence)
+- Added HTTP method extraction from matched paths
+- Implemented match prioritization (exact matches before parameterized matches)
+- Created 16 comprehensive test cases for matchPath functionality
+- All quality checks pass (analyse, format, test)
+- Files changed: src/PathMatcher.php, tests/Unit/PathMatcherTest.php
+- **Learnings for future iterations:**
+  - Use array_filter with ARRAY_FILTER_USE_KEY to extract only named captures from preg_match results
+  - When normalizing paths, trim slashes then add back the leading slash: '/'.trim($input, '/')
+  - usort() can be used to prioritize results based on custom criteria (e.g., exact vs parameterized)
+  - The matchPath method returns structured arrays with path, parameters, methods, and isExact flag
+  - Test for edge cases: leading/trailing slashes, special characters in parameters, multiple matches
+  - When multiple paths match the same input, return all matches (let the caller decide how to handle)
+  - HTTP methods in OpenAPI specs are lowercase keys (get, post, etc.) - use array_map('strtoupper') to normalize
+---
