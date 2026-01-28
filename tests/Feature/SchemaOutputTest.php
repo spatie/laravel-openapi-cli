@@ -111,3 +111,9 @@ it('works with --schema flag without requiring endpoint argument', function () {
     $this->artisan('test-api', ['--schema' => true])
         ->assertSuccessful();
 });
+
+it('outputs minified JSON when --schema and --minify flags are both used', function () {
+    $this->artisan('test-api', ['--schema' => true, '--minify' => true])
+        ->assertSuccessful()
+        ->expectsOutputToContain('{"openapi"');
+});

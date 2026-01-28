@@ -221,3 +221,122 @@ it('does not escape forward slashes in JSON output', function () {
         return true; // Just need to trigger the command to check output
     });
 });
+
+// --minify flag tests
+
+it('minifies JSON output when --minify flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123,"active":true}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --minify')
+        ->expectsOutput('{"name":"Project 1","id":123,"active":true}')
+        ->assertSuccessful();
+});
+
+it('minifies nested JSON structures when --minify flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"project":{"name":"Test","metadata":{"created":"2024-01-01","tags":["api","test"]}}}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --minify')
+        ->expectsOutput('{"project":{"name":"Test","metadata":{"created":"2024-01-01","tags":["api","test"]}}}')
+        ->assertSuccessful();
+});
+
+it('minifies JSON arrays when --minify flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('[{"id":1,"name":"Project 1"},{"id":2,"name":"Project 2"}]', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --minify')
+        ->expectsOutput('[{"id":1,"name":"Project 1"},{"id":2,"name":"Project 2"}]')
+        ->assertSuccessful();
+});
+
+it('outputs minified JSON on single line with no extra whitespace', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name": "Test",  "id":   123,   "active":  true}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --minify')
+        ->expectsOutput('{"name":"Test","id":123,"active":true}')
+        ->assertSuccessful();
+});
+
+it('preserves unicode characters in minified JSON output', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Tëst Prøjéct","emoji":"🚀"}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --minify')
+        ->expectsOutput('{"name":"Tëst Prøjéct","emoji":"🚀"}')
+        ->assertSuccessful();
+});
+
+it('does not escape forward slashes in minified JSON output', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"url":"https://example.com/path/to/resource"}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --minify')
+        ->expectsOutput('{"url":"https://example.com/path/to/resource"}')
+        ->assertSuccessful();
+});
+
+it('minifies empty JSON objects', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --minify')
+        ->expectsOutput('[]')
+        ->assertSuccessful();
+});
+
+it('minifies empty JSON arrays', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('[]', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api projects --minify')
+        ->expectsOutput('[]')
+        ->assertSuccessful();
+});
+
+it('outputs raw body for non-JSON responses even with --minify flag', function () {
+    Http::fake([
+        'https://api.example.com/html-response' => Http::response('<html><body>Hello</body></html>', 200, ['Content-Type' => 'text/html']),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+
+    $this->artisan('test-api html-response --minify')
+        ->expectsOutput('<html><body>Hello</body></html>')
+        ->assertSuccessful();
+});

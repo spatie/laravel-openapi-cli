@@ -410,8 +410,13 @@ class OpenApiCommand extends Command
     {
         $spec = $parser->getSpec();
 
-        // Pretty-print JSON by default
-        $json = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        // Check if minify flag is set
+        if ($this->option('minify')) {
+            $json = json_encode($spec, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } else {
+            // Pretty-print JSON by default
+            $json = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
 
         $this->line($json);
 
@@ -510,8 +515,15 @@ class OpenApiCommand extends Command
         $decoded = json_decode($body, true);
 
         if (json_last_error() === JSON_ERROR_NONE && $decoded !== null) {
-            // Valid JSON - format it with pretty print
-            $formatted = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            // Valid JSON - format based on minify flag
+            if ($this->option('minify')) {
+                // Minified JSON (single line, no whitespace)
+                $formatted = json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            } else {
+                // Pretty-print JSON by default
+                $formatted = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            }
+
             $this->line($formatted);
         } else {
             // Not valid JSON - output raw body
