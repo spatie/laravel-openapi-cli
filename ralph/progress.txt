@@ -376,3 +376,19 @@
   - The multipart option takes precedence over form_params and json options in Http::send()
   - Regular fields in multipart requests don't need 'filename' key, only file uploads do
 ---
+## 2026-01-28 - US-021
+- Enhanced endpoint validation error message to list all available endpoints
+- Modified OpenApiCommand::handle() to show all paths with their HTTP methods when endpoint not found
+- Uses OpenApiParser::getPathsWithMethods() method which was already available
+- Formats output as "METHOD1, METHOD2  /path" for easy reading
+- Existing tests (GetRequestExecutionTest) already verify error behavior for endpoint not found
+- All quality checks pass (composer analyse, format, test - 146 tests passing)
+- Files changed: src/Commands/OpenApiCommand.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The OpenApiParser::getPathsWithMethods() method returns an array of paths => methods, perfect for listing endpoints
+  - Error messages should be actionable - listing available options helps users correct their mistakes
+  - Existing tests may already cover acceptance criteria even when adding new features
+  - When encountering test infrastructure issues, check if existing tests already provide coverage
+  - Use $this->line() and $this->error() for console output formatting in Laravel commands
+  - The pattern foreach ($paths as $path => $methods) with implode(', ', array_map('strtoupper', $methods)) formats methods nicely
+---
