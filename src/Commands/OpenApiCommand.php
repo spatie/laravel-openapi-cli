@@ -35,6 +35,14 @@ class OpenApiCommand extends Command
 
     public function handle(): int
     {
+        // Parse the OpenAPI spec
+        $parser = new OpenApiParser($this->config->getSpecPath());
+
+        // Handle --list flag (list all endpoints)
+        if ($this->option('list')) {
+            return $this->listEndpoints($parser);
+        }
+
         $endpoint = $this->argument('endpoint');
 
         // Get endpoint path
@@ -44,8 +52,6 @@ class OpenApiCommand extends Command
             return self::FAILURE;
         }
 
-        // Parse the OpenAPI spec
-        $parser = new OpenApiParser($this->config->getSpecPath());
         $paths = $parser->getPaths();
 
         // Match the endpoint path
@@ -327,5 +333,63 @@ class OpenApiCommand extends Command
             'fields' => $fields,
             'files' => $files,
         ];
+    }
+
+    /**
+     * List all available endpoints from the OpenAPI spec.
+     */
+    protected function listEndpoints(OpenApiParser $parser): int
+    {
+        $pathsWithMethods = $parser->getPathsWithMethods();
+
+        // Sort endpoints by path, then by method
+        $endpoints = [];
+        foreach ($pathsWithMethods as $path => $methods) {
+            foreach ($methods as $method) {
+                $summary = $parser->getOperationSummary($path, $method);
+                $description = $parser->getOperationDescription($path, $method);
+
+                // Use summary if available, otherwise use description
+                $desc = $summary ?? $description ?? '';
+
+                $endpoints[] = [
+                    'method' => strtoupper($method),
+                    'path' => $path,
+                    'description' => $desc,
+                ];
+            }
+        }
+
+        // Sort by path first, then by method
+        usort($endpoints, function ($a, $b) {
+            $pathCompare = strcmp($a['path'], $b['path']);
+
+            if ($pathCompare !== 0) {
+                return $pathCompare;
+            }
+
+            // Define method order priority
+            $methodOrder = ['GET' => 1, 'POST' => 2, 'PUT' => 3, 'PATCH' => 4, 'DELETE' => 5];
+            $aOrder = $methodOrder[$a['method']] ?? 999;
+            $bOrder = $methodOrder[$b['method']] ?? 999;
+
+            return $aOrder <=> $bOrder;
+        });
+
+        // Calculate column widths
+        $methodWidth = 7; // Fixed width for HTTP methods (DELETE is longest at 6 chars + 1 space)
+        $maxPathWidth = 0;
+        foreach ($endpoints as $endpoint) {
+            $maxPathWidth = max($maxPathWidth, strlen($endpoint['path']));
+        }
+
+        // Output formatted table
+        foreach ($endpoints as $endpoint) {
+            $method = str_pad($endpoint['method'], $methodWidth);
+            $path = str_pad($endpoint['path'], $maxPathWidth);
+            $this->line("{$method}{$path}  {$endpoint['description']}");
+        }
+
+        return self::SUCCESS;
     }
 }
