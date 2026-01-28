@@ -3,6 +3,8 @@
 namespace Spatie\OpenApiCli\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\CommandConfiguration;
 use Spatie\OpenApiCli\OpenApiParser;
 
@@ -55,5 +57,37 @@ class OpenApiCommand extends Command
         throw new \RuntimeException(
             'No base URL available. Either configure one using ->baseUrl() or ensure your OpenAPI spec has a servers array.'
         );
+    }
+
+    /**
+     * Apply configured authentication to the HTTP client.
+     */
+    protected function applyAuthentication(PendingRequest $http): PendingRequest
+    {
+        // Apply bearer token authentication
+        if ($this->config->getBearerToken() !== null) {
+            return $http->withToken($this->config->getBearerToken());
+        }
+
+        // Apply API key authentication
+        if ($this->config->getApiKeyHeader() !== null && $this->config->getApiKeyValue() !== null) {
+            return $http->withHeader($this->config->getApiKeyHeader(), $this->config->getApiKeyValue());
+        }
+
+        // Apply basic authentication
+        if ($this->config->getBasicUsername() !== null && $this->config->getBasicPassword() !== null) {
+            return $http->withBasicAuth($this->config->getBasicUsername(), $this->config->getBasicPassword());
+        }
+
+        // Apply callable authentication
+        if ($this->config->getAuthCallable() !== null) {
+            $callable = $this->config->getAuthCallable();
+            $token = $callable();
+
+            return $http->withToken($token);
+        }
+
+        // No authentication configured
+        return $http;
     }
 }
