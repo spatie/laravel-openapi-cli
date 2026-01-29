@@ -762,3 +762,25 @@
   - This is another example of efficient implementation - feature work and test work done together
 ---
 
+## 2026-01-29 - US-035, US-036, US-037, US-038, US-040, US-041
+- Verified comprehensive test suites already exist for all these stories
+- US-035 (OpenAPI Parser Tests): OpenApiParserTest.php has 21 tests covering YAML, JSON parsing, path extraction, parameters, request bodies, error handling
+- US-036 (Path Matcher Tests): PathMatcherTest.php has 34 tests covering regex conversion, matching, parameter extraction, slash handling, prioritization, ambiguity detection
+- US-037 (Ref Resolution and Authentication Tests): RefResolverTest.php (13 tests) covers $ref resolution, nested refs, JSON pointer; AuthenticationTest.php (7 tests) covers bearer, API key, basic, callable auth
+- US-038 (Command Registration and Discovery Tests): CommandRegistrationTest.php (7 tests) covers registration, chaining, artisan list; ListEndpointsTest.php (5 tests) covers --list flag, formatting, sorting
+- US-040 (Request Execution Tests): Multiple files cover all aspects - GetRequestExecutionTest (10 tests), QueryParametersTest (9 tests), FormFieldsTest (9 tests), JsonInputTest (9 tests), MethodOverrideTest (11 tests)
+- US-041 (Output Formatting and Error Handling Tests): OutputFormattingTest (27 tests) covers JSON formatting, minify, include, non-JSON, 204 responses; FileUploadTest (10 tests); Http4xxErrorHandlingTest (8 tests); Http5xxErrorHandlingTest (8 tests)
+- All tests pass: 212 tests total with 498 assertions
+- All quality checks pass: composer analyse (✓), composer format (✓), composer test (✓)
+- Files verified: All test files in tests/Unit/ and tests/Feature/
+- No changes needed - marking all stories as complete
+- **Learnings for future iterations:**
+  - These test stories were completed as part of feature implementations (efficient approach)
+  - Always check for existing tests before assuming they need to be created
+  - The test suite is comprehensive with 212 tests covering all functionality
+  - Test organization is clear: Unit tests for classes, Feature tests for command behavior
+  - All tests follow proper patterns: clearRegistrations, Http::fake, temp file cleanup
+  - The test infrastructure from US-044/045/046/047 ensures all tests run reliably
+  - Having tests co-located with feature implementation ensures they stay in sync
+---
+

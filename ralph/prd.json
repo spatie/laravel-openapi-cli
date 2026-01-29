@@ -697,8 +697,8 @@
         "Code formatting passes (`composer format`)"
       ],
       "priority": 45,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Tests already exist from US-002 implementation with 21 tests covering all acceptance criteria"
     },
     {
       "id": "US-036",
@@ -720,8 +720,8 @@
         "Code formatting passes (`composer format`)"
       ],
       "priority": 46,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Tests already exist from US-005 and US-006 implementations with 34 tests covering all acceptance criteria"
     },
     {
       "id": "US-037",
@@ -746,8 +746,8 @@
         "Code formatting passes (`composer format`)"
       ],
       "priority": 47,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Tests already exist: RefResolverTest.php (13 tests) from US-004 and AuthenticationTest.php (7 tests) from US-009"
     },
     {
       "id": "US-038",
@@ -771,8 +771,8 @@
         "Code formatting passes (`composer format`)"
       ],
       "priority": 48,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Tests already exist: CommandRegistrationTest.php (7 tests) from US-008 and ListEndpointsTest.php (5 tests) from US-022"
     },
     {
       "id": "US-039",
@@ -822,8 +822,8 @@
         "Code formatting passes (`composer format`)"
       ],
       "priority": 45,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Tests exist across multiple files: GetRequestExecutionTest (10 tests), QueryParametersTest (9 tests), FormFieldsTest (9 tests), JsonInputTest (9 tests), MethodOverrideTest (11 tests)"
     },
     {
       "id": "US-041",
@@ -854,8 +854,8 @@
         "Code formatting passes (`composer format`)"
       ],
       "priority": 46,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Tests exist: OutputFormattingTest (27 tests), FileUploadTest (10 tests), Http4xxErrorHandlingTest (8 tests), Http5xxErrorHandlingTest (8 tests)"
     },
     {
       "id": "US-042",
