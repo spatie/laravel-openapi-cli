@@ -831,3 +831,36 @@
   - Total test count is now 216 tests with 508 assertions
 ---
 
+## 2026-01-29 - US-034
+- Wrote comprehensive README documentation following Spatie's package structure
+- Updated title to "Laravel OpenAPI CLI" with clear description
+- Added practical examples in introduction showing package capabilities
+- Removed migrations and views sections (not applicable for this CLI package)
+- Updated Installation section with actual composer install steps
+- Created extensive Usage section covering:
+  - Registering OpenAPI specs with base_path() examples
+  - Basic requests (GET, path parameters, query parameters)
+  - Sending data with --field, --input, and file uploads (@prefix)
+  - HTTP methods with explicit --method and auto-detection
+  - All authentication methods (bearer, API key, basic, dynamic closure)
+  - Discovery commands (--list, --schema, --help-endpoint) with example outputs
+  - Output formatting (pretty-print default, --minify, --include headers)
+  - Error handling capabilities
+  - Multiple specs registration example with different APIs
+- Added Command Reference section listing all arguments and options
+- Kept Testing section with "composer test"
+- Kept all footer sections (Changelog, Contributing, Security, Credits, License)
+- All quality checks pass: composer analyse (✓), composer format (✓), composer test (✓ - 216 tests)
+- Files changed: README.md
+- **Learnings for future iterations:**
+  - README is the first impression for package users - make it comprehensive but scannable
+  - Use subsections (###) to break up content into digestible chunks
+  - Show code examples for every major feature - examples are worth more than descriptions
+  - Include expected output for commands to set user expectations
+  - Document common patterns (multiple specs, different auth methods) to guide real-world usage
+  - Keep the structure familiar (follow Spatie conventions) so users know where to find info
+  - Command reference table at the end provides quick lookup for all options
+  - Removed skeleton boilerplate (migrations, views) that doesn't apply to this package type
+  - The README is now production-ready and serves as complete documentation for the package
+---
+

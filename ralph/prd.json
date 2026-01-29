@@ -894,7 +894,7 @@
         "Keep all footer sections (Changelog, Contributing, Security, Credits, License)"
       ],
       "priority": 48,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
