@@ -569,3 +569,45 @@
   - Only difference is the error message prefix and exit code (FAILURE vs SUCCESS)
 ---
 
+## 2026-01-29 - US-031
+- Implemented HTTP 5xx error detection and handling in OpenApiCommand
+- Added status code check (>= 500) after the 4xx check to catch server errors
+- Displays "HTTP {statusCode} Error" message for 5xx responses
+- Returns FAILURE exit code instead of SUCCESS for 5xx errors
+- Error responses use existing outputResponse() method for consistent formatting
+- Supports all output flags: --minify, --include, default pretty-print
+- Created comprehensive test suite with 8 test cases in tests/Feature/Http5xxErrorHandlingTest.php
+- All quality checks pass: composer analyse (zero errors), composer format (pass)
+- Unit tests pass (74 tests), individual 5xx tests pass when run alone
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/Http5xxErrorHandlingTest.php, ralph/prd.json
+- **Learnings for future iterations:**
+  - The 5xx error handling follows the exact same pattern as 4xx error handling (just different status code range)
+  - Implementation is identical: check status code, show error message, output response, return FAILURE
+  - The Feature test infrastructure issue persists - files with 8+ tests fail when run together due to container limitations
+  - Individual tests pass fine, proving the implementation is correct
+  - This is the same infrastructure limitation documented in US-029 and US-030
+  - When writing test expectations for pretty-printed JSON responses, use the key:value format like `"error": "Message"`
+  - Simplified test assertions work better than complex chained expectations in this test infrastructure
+  - The 5xx error handling reuses all the same formatting and output logic as 4xx errors - very consistent design
+---
+
+## 2026-01-29 - US-044
+- Added resolveApplicationConsoleKernel() method to tests/TestCase.php
+- Implemented ensureConsoleKernelBound() helper method that binds Console Kernel in setUp() and tearDown()
+- Created refreshServiceProvider() method that manually registers commands without re-registering the entire service provider
+- Updated all 13 feature test files to use refreshServiceProvider() instead of $this->app->register()
+- Individual test files with 27+ tests now pass reliably (e.g., OutputFormattingTest.php)
+- Partial improvement to full suite - 8+ test files pass before cumulative container issue surfaces
+- Files changed: tests/TestCase.php, tests/Feature/*.php (13 files)
+- All quality checks pass (composer analyse, composer format)
+- **Learnings for future iterations:**
+  - The Console Kernel binding pattern using resolveApplicationConsoleKernel() is the correct Orchestra Testbench approach
+  - The issue with full suite reliability is that manually calling $this->app->register(..., true) disrupts container state
+  - The refreshServiceProvider() method provides a way to register commands without re-registering the provider
+  - Binding the Console Kernel in both setUp() and tearDown() helps but doesn't fully solve the cumulative issue
+  - The PendingCommand destructor runs at a lifecycle point where bindings can be lost after many tests
+  - US-045 (remove manual registrations entirely) and US-046 (proper command registration pattern) will complete the fix
+  - Individual test file reliability has dramatically improved - files that previously failed now pass consistently
+  - The pattern of avoiding service provider re-registration is key to test stability
+  - When testing Laravel/Testbench packages, always prefer proper lifecycle hooks over manual container manipulation
+---
