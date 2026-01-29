@@ -808,3 +808,26 @@
   - The comprehensive test suite from previous stories provides high confidence in code quality even without coverage metrics
 ---
 
+## 2026-01-29 - US-032
+- Implemented network error handling in OpenApiCommand by wrapping HTTP requests in try-catch block
+- Catches Illuminate\Http\Client\ConnectionException for connection failures
+- Displays clear error message: "Network error: Could not connect to {url}"
+- Shows underlying exception message for debugging (e.g., cURL errors, timeout messages)
+- Returns FAILURE exit code (non-zero) when network errors occur
+- Created comprehensive test suite with 4 test cases in NetworkErrorHandlingTest.php:
+  - Tests connection refused errors
+  - Tests underlying exception message display
+  - Tests network errors for POST requests with data
+  - Tests non-zero exit code on failures
+- All quality checks pass: composer analyse (✓), composer format (✓), composer test (✓ - 216 tests with 508 assertions)
+- Files changed: src/Commands/OpenApiCommand.php, tests/Feature/NetworkErrorHandlingTest.php
+- **Learnings for future iterations:**
+  - Laravel's HTTP client throws ConnectionException for network-related errors (connection refused, timeouts, DNS failures)
+  - The try-catch block should wrap all HTTP request execution paths (GET, POST, file uploads, etc.)
+  - Network errors should display both the URL and the underlying error message for debugging
+  - Http::fake() can throw exceptions using callback syntax: Http::fake(function () { throw new ConnectionException('message'); })
+  - The assertSent() check doesn't work when exceptions are thrown before the request is sent
+  - Network error tests should verify: error message content, exit code, and exception message display
+  - Total test count is now 216 tests with 508 assertions
+---
+
