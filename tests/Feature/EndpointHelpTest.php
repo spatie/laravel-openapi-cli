@@ -3,6 +3,8 @@
 use Spatie\OpenApiCli\Facades\OpenApiCli;
 
 beforeEach(function () {
+    OpenApiCli::clearRegistrations();
+
     // Create a temporary OpenAPI spec for testing
     $this->specPath = sys_get_temp_dir().'/test-spec-endpoint-help-'.uniqid().'.yaml';
 

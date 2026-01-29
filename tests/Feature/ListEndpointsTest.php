@@ -3,6 +3,8 @@
 use Spatie\OpenApiCli\Facades\OpenApiCli;
 
 beforeEach(function () {
+    OpenApiCli::clearRegistrations();
+
     $this->specContent = <<<'YAML'
 openapi: 3.0.0
 info:

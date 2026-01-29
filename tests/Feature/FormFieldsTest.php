@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\OpenApiCli;
 
 beforeEach(function () {
+    OpenApiCli::clearRegistrations();
+
     // Create a temporary OpenAPI spec file for testing
     $this->specPath = sys_get_temp_dir().'/test-spec-'.uniqid().'.yaml';
 

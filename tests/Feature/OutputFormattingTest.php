@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\Facades\OpenApiCli;
 
 beforeEach(function () {
+    OpenApiCli::clearRegistrations();
+
     // Create a minimal OpenAPI spec for testing
     $this->specContent = <<<'YAML'
 openapi: 3.0.0

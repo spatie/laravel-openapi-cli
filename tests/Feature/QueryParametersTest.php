@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\OpenApiCli;
 
 beforeEach(function () {
+    OpenApiCli::clearRegistrations();
+
     // Create temporary spec file with query parameter endpoints
     $spec = [
         'openapi' => '3.0.0',

@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\Facades\OpenApiCli;
 
 beforeEach(function () {
+    OpenApiCli::clearRegistrations();
+
     Http::fake([
         'https://api.example.com/*' => Http::response(['success' => true], 200),
     ]);

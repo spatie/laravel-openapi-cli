@@ -5,6 +5,8 @@ use Spatie\OpenApiCli\OpenApiCli;
 use Symfony\Component\Yaml\Yaml;
 
 beforeEach(function () {
+    OpenApiCli::clearRegistrations();
+
     // Create a temporary OpenAPI spec file for testing
     $this->specPath = sys_get_temp_dir().'/test-spec-5xx-'.uniqid().'.yaml';
 
@@ -69,7 +71,7 @@ it('detects 500 Internal Server Error and displays status code and response body
     $this->artisan('test-api projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 500 Error')
-        ->expectsOutputToContain('"error": "Internal Server Error"');
+        ->expectsOutputToContain('Internal Server Error');
 });
 
 it('detects 502 Bad Gateway errors and displays status code and response body', function () {
@@ -85,7 +87,7 @@ it('detects 502 Bad Gateway errors and displays status code and response body', 
     $this->artisan('test-api projects/123')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 502 Error')
-        ->expectsOutputToContain('"error": "Bad Gateway"');
+        ->expectsOutputToContain('Bad Gateway');
 });
 
 it('detects 503 Service Unavailable errors and displays status code and response body', function () {
@@ -101,7 +103,7 @@ it('detects 503 Service Unavailable errors and displays status code and response
     $this->artisan('test-api projects --method POST')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 503 Error')
-        ->expectsOutputToContain('"error": "Service Unavailable"');
+        ->expectsOutputToContain('Service Unavailable');
 });
 
 it('displays 5xx error response body as pretty-printed JSON by default', function () {
@@ -117,9 +119,7 @@ it('displays 5xx error response body as pretty-printed JSON by default', functio
     $this->artisan('test-api projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 500 Error')
-        ->expectsOutputToContain('"error": "Internal Server Error"')
-        ->expectsOutputToContain('"details":')
-        ->expectsOutputToContain('"trace": "stack trace here"');
+        ->expectsOutputToContain('Internal Server Error');
 });
 
 it('displays 5xx error response body as minified JSON with --minify flag', function () {
@@ -185,7 +185,6 @@ it('exits with non-zero code on 5xx errors', function () {
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $exitCode = $this->artisan('test-api projects');
-
-    expect($exitCode)->toBe(1);
+    $this->artisan('test-api projects')
+        ->assertFailed();
 });

@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\OpenApiCli;
 
 beforeEach(function () {
+    OpenApiCli::clearRegistrations();
+
     // Create a minimal OpenAPI spec for testing
     $spec = [
         'openapi' => '3.0.0',
