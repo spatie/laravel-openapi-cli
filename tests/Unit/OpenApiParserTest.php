@@ -295,3 +295,27 @@ YAML
 
     unlink($tempFile);
 });
+
+it('throws exception for unsupported file format', function () {
+    $tempFile = sys_get_temp_dir().'/openapi_'.uniqid().'.txt';
+    file_put_contents($tempFile, 'some content');
+
+    try {
+        new OpenApiParser($tempFile);
+    } finally {
+        unlink($tempFile);
+    }
+})->throws(\InvalidArgumentException::class, 'Unsupported file format');
+
+it('throws exception when spec file is not readable', function () {
+    $tempFile = sys_get_temp_dir().'/openapi_'.uniqid().'.yaml';
+    file_put_contents($tempFile, 'openapi: 3.0.0');
+    chmod($tempFile, 0000);
+
+    try {
+        new OpenApiParser($tempFile);
+    } finally {
+        chmod($tempFile, 0644);
+        unlink($tempFile);
+    }
+})->throws(\InvalidArgumentException::class, 'Spec file is not readable');
