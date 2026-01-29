@@ -93,8 +93,9 @@ it('can register command that appears in artisan list', function () {
 
     OpenApiCli::register($specPath, $signature);
 
-    // Re-bootstrap the service provider to register commands
-    $this->refreshServiceProvider();
+    // Trigger command registration by calling artisan (which calls our override)
+    // This ensures the command is registered before checking Artisan::all()
+    $this->registerOpenApiCommands();
 
     $commands = array_keys(Artisan::all());
 

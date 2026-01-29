@@ -44,6 +44,8 @@ beforeEach(function () {
 
     $this->specPath = sys_get_temp_dir().'/test-spec-'.uniqid().'.json';
     file_put_contents($this->specPath, json_encode($spec));
+
+    OpenApiCli::clearRegistrations();
 });
 
 afterEach(function () {
@@ -54,7 +56,6 @@ afterEach(function () {
 
 it('sends JSON input with POST method auto-detection', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -70,7 +71,6 @@ it('sends JSON input with POST method auto-detection', function () {
 
 it('sends nested JSON structures', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -91,7 +91,6 @@ it('sends nested JSON structures', function () {
 
 it('sends JSON arrays', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -109,7 +108,6 @@ it('sends JSON arrays', function () {
 
 it('works with explicit PUT method', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'users',
@@ -126,7 +124,6 @@ it('works with explicit PUT method', function () {
 
 it('validates JSON syntax and shows error for invalid JSON', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -140,7 +137,6 @@ it('validates JSON syntax and shows error for invalid JSON', function () {
 
 it('shows error when both --field and --input are provided', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -155,7 +151,6 @@ it('shows error when both --field and --input are provided', function () {
 
 it('works with query parameters', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -171,7 +166,6 @@ it('works with query parameters', function () {
 
 it('validates JSON syntax for malformed arrays', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -185,7 +179,6 @@ it('validates JSON syntax for malformed arrays', function () {
 
 it('handles empty JSON objects', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',

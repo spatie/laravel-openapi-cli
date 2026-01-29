@@ -48,7 +48,6 @@ it('appends single query parameter to URL', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -67,7 +66,6 @@ it('appends multiple query parameters to URL', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -86,7 +84,6 @@ it('URL-encodes query parameter values', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -105,7 +102,6 @@ it('URL-encodes special characters in query parameters', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -124,7 +120,6 @@ it('works without query parameters', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'users',
@@ -151,7 +146,6 @@ it('combines query parameters with path parameters', function () {
     file_put_contents($this->specPath, json_encode($spec));
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     Http::fake([
         'https://api.example.com/projects/123?include=members' => Http::response(['data' => 'success'], 200),
@@ -174,7 +168,6 @@ it('handles empty query parameter values', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -193,7 +186,6 @@ it('handles query parameters with numbers', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -218,7 +210,6 @@ it('works with POST requests and query parameters', function () {
     file_put_contents($this->specPath, json_encode($spec));
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     Http::fake([
         'https://api.example.com/projects?notify=true' => Http::response(['data' => 'created'], 201),

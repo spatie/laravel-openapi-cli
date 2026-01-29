@@ -95,7 +95,6 @@ it('executes GET request with explicit --method GET', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users', '--method' => 'GET'])
         ->assertSuccessful();
@@ -112,7 +111,6 @@ it('executes POST request with explicit --method POST', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users', '--method' => 'POST'])
         ->assertSuccessful();
@@ -129,7 +127,6 @@ it('executes PUT request with explicit --method PUT', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users/123', '--method' => 'PUT'])
         ->assertSuccessful();
@@ -146,7 +143,6 @@ it('executes PATCH request with explicit --method PATCH', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users/123', '--method' => 'PATCH'])
         ->assertSuccessful();
@@ -163,7 +159,6 @@ it('executes DELETE request with explicit --method DELETE', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users/123', '--method' => 'DELETE'])
         ->assertSuccessful();
@@ -180,7 +175,6 @@ it('accepts case insensitive method names - lowercase', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users/123', '--method' => 'delete'])
         ->assertSuccessful();
@@ -196,7 +190,6 @@ it('accepts case insensitive method names - mixed case', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users/123', '--method' => 'PaTcH'])
         ->assertSuccessful();
@@ -210,7 +203,6 @@ it('shows error when method not defined for path in spec', function () {
     Http::fake();
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users', '--method' => 'DELETE'])
         ->assertFailed()
@@ -224,7 +216,6 @@ it('validates PUT method not allowed for /users endpoint', function () {
     Http::fake();
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users', '--method' => 'PUT'])
         ->assertFailed()
@@ -238,7 +229,6 @@ it('validates PATCH method not allowed for /users endpoint', function () {
     Http::fake();
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users', '--method' => 'PATCH'])
         ->assertFailed()
@@ -252,7 +242,6 @@ it('validates POST method not allowed for /users/{id} endpoint', function () {
     Http::fake();
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users/123', '--method' => 'POST'])
         ->assertFailed()

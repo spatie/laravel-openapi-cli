@@ -59,7 +59,6 @@ YAML;
     file_put_contents($this->specPath, $this->specContent);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, force: true);
 });
 
 afterEach(function () {

@@ -52,7 +52,6 @@ beforeEach(function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test:api');
-    $this->refreshServiceProvider();
 });
 
 afterEach(function () {

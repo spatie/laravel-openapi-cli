@@ -16,8 +16,7 @@ class TestCase extends Orchestra
             fn (string $modelName) => 'Spatie\\OpenApiCli\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
 
-        // Force-bind the Console Kernel to prevent container errors when tests
-        // manually re-register the service provider with $this->app->register(..., true)
+        // Ensure the Console Kernel is properly bound
         $this->ensureConsoleKernelBound();
     }
 
@@ -76,25 +75,55 @@ class TestCase extends Orchestra
     }
 
     /**
-     * Refresh OpenAPI command registrations without re-registering the service provider.
+     * Override artisan() method to automatically register OpenAPI commands before execution.
      *
-     * This helper method manually registers commands that were added via OpenApiCli::register()
-     * without disrupting the application container state by re-registering the entire service provider.
+     * This ensures that any commands registered via OpenApiCli::register() are available
+     * to artisan without requiring manual intervention in each test.
      */
-    protected function refreshServiceProvider(): void
+    public function artisan($command, $parameters = [])
+    {
+        // Automatically register any OpenAPI commands that were registered since setUp()
+        $this->registerOpenApiCommands();
+
+        return parent::artisan($command, $parameters);
+    }
+
+    /**
+     * Register OpenAPI commands without re-registering the service provider.
+     *
+     * This method registers commands that were added via OpenApiCli::register()
+     * without disrupting the application container state.
+     */
+    protected function registerOpenApiCommands(): void
     {
         // Ensure Console Kernel binding exists before we try to use it
         $this->ensureConsoleKernelBound();
 
-        // Manually register all OpenAPI commands without re-registering the provider
+        // Manually register all OpenAPI commands
         foreach (\Spatie\OpenApiCli\Facades\OpenApiCli::getRegistrations() as $config) {
-            $this->app->singleton($config->getSignature(), function () use ($config) {
+            $signature = $config->getSignature();
+
+            // Re-bind the command with the current configuration
+            // This ensures we always use the latest spec path
+            $this->app->singleton($signature, function () use ($config) {
                 return new \Spatie\OpenApiCli\Commands\OpenApiCommand($config);
             });
 
-            // Register the command with Artisan
-            $this->app->make(\Illuminate\Contracts\Console\Kernel::class)
-                ->registerCommand($this->app->make($config->getSignature()));
+            // Check if command is already registered with Artisan
+            $kernel = $this->app->make(\Illuminate\Contracts\Console\Kernel::class);
+            $commands = $kernel->all();
+
+            // Only register if not already in Artisan's command list
+            if (! isset($commands[$signature])) {
+                try {
+                    $kernel->registerCommand($this->app->make($signature));
+                } catch (\Exception $e) {
+                    // If registration fails, ensure Console Kernel is bound and retry
+                    $this->ensureConsoleKernelBound();
+                    $this->app->make(\Illuminate\Contracts\Console\Kernel::class)
+                        ->registerCommand($this->app->make($signature));
+                }
+            }
         }
     }
 }
