@@ -604,8 +604,8 @@
         "Pattern works for all feature tests without individual test modifications"
       ],
       "priority": 35,
-      "passes": false,
-      "notes": "The challenge is that tests call OpenApiCli::register() to set up commands, but the service provider needs to see those registrations when it boots"
+      "passes": true,
+      "notes": "Fixed by correcting PendingCommand usage pattern (use assertFailed() instead of assigning to variable) and ensuring OpenApiCli::clearRegistrations() is called in all beforeEach hooks to prevent test pollution"
     },
     {
       "id": "US-047",
