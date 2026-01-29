@@ -173,57 +173,64 @@ class OpenApiCommand extends Command
         $http = ! empty($files) ? Http::withOptions([]) : Http::asJson();
         $http = $this->applyAuthentication($http);
 
-        // Determine how to send the request based on data type
-        if ($jsonData !== null) {
-            // Send as JSON (always use application/json for --input)
-            $response = $http->send($method, $url, [
-                'json' => $jsonData,
-            ]);
-        } elseif (! empty($files)) {
-            // File uploads require multipart/form-data
-            // Build multipart array with files and regular fields
-            $multipart = [];
-
-            // Add file attachments
-            foreach ($files as $fieldName => $filePath) {
-                $multipart[] = [
-                    'name' => $fieldName,
-                    'contents' => file_get_contents($filePath),
-                    'filename' => basename($filePath),
-                ];
-            }
-
-            // Add regular fields if present
-            foreach ($fields as $fieldName => $value) {
-                $multipart[] = [
-                    'name' => $fieldName,
-                    'contents' => $value,
-                ];
-            }
-
-            // Send with multipart option
-            $response = $http->send($method, $url, [
-                'multipart' => $multipart,
-            ]);
-        } elseif (! empty($fields)) {
-            // Get content types from spec to determine format
-            $contentTypes = $parser->getRequestBodyContentTypes($match['path'], strtolower($method));
-
-            // Check if spec expects application/json or if no content type is specified (default to JSON)
-            if (empty($contentTypes) || in_array('application/json', $contentTypes)) {
-                // Send as JSON
+        try {
+            // Determine how to send the request based on data type
+            if ($jsonData !== null) {
+                // Send as JSON (always use application/json for --input)
                 $response = $http->send($method, $url, [
-                    'json' => $fields,
+                    'json' => $jsonData,
                 ]);
+            } elseif (! empty($files)) {
+                // File uploads require multipart/form-data
+                // Build multipart array with files and regular fields
+                $multipart = [];
+
+                // Add file attachments
+                foreach ($files as $fieldName => $filePath) {
+                    $multipart[] = [
+                        'name' => $fieldName,
+                        'contents' => file_get_contents($filePath),
+                        'filename' => basename($filePath),
+                    ];
+                }
+
+                // Add regular fields if present
+                foreach ($fields as $fieldName => $value) {
+                    $multipart[] = [
+                        'name' => $fieldName,
+                        'contents' => $value,
+                    ];
+                }
+
+                // Send with multipart option
+                $response = $http->send($method, $url, [
+                    'multipart' => $multipart,
+                ]);
+            } elseif (! empty($fields)) {
+                // Get content types from spec to determine format
+                $contentTypes = $parser->getRequestBodyContentTypes($match['path'], strtolower($method));
+
+                // Check if spec expects application/json or if no content type is specified (default to JSON)
+                if (empty($contentTypes) || in_array('application/json', $contentTypes)) {
+                    // Send as JSON
+                    $response = $http->send($method, $url, [
+                        'json' => $fields,
+                    ]);
+                } else {
+                    // Send as form-data (for multipart/form-data or application/x-www-form-urlencoded)
+                    $response = $http->send($method, $url, [
+                        'form_params' => $fields,
+                    ]);
+                }
             } else {
-                // Send as form-data (for multipart/form-data or application/x-www-form-urlencoded)
-                $response = $http->send($method, $url, [
-                    'form_params' => $fields,
-                ]);
+                // No data, just send the request
+                $response = $http->send($method, $url);
             }
-        } else {
-            // No data, just send the request
-            $response = $http->send($method, $url);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            $this->error("Network error: Could not connect to {$url}");
+            $this->line($e->getMessage());
+
+            return self::FAILURE;
         }
 
         // Check for HTTP errors (4xx, 5xx)
