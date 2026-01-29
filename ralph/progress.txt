@@ -665,3 +665,24 @@
   - Pretty-printed JSON format varies, so check for content presence rather than exact formatting
 ---
 
+## 2026-01-29 - US-047
+- Verified full test suite reliability with 3 consecutive successful runs
+- All 210 tests pass consistently (494 assertions total)
+- No "Target [Illuminate\Contracts\Console\Kernel] is not instantiable" errors occur
+- No container-related errors occur in any test runs
+- OutputFormattingTest.php with 27 tests runs successfully individually and in full suite
+- Full suite runs complete in ~1.5 seconds with random seed ordering
+- Individual test files run successfully when executed separately
+- All acceptance criteria met - infrastructure fixes from US-044, US-045, and US-046 work perfectly
+- Files verified: All test files (210 tests total across Unit and Feature directories)
+- **Learnings for future iterations:**
+  - The test infrastructure fixes from US-044 (Console Kernel binding), US-045 (automatic command registration), and US-046 (proper test cleanup) successfully resolved all reliability issues
+  - The critical fix was ensuring OpenApiCli::clearRegistrations() is called in EVERY beforeEach() hook to prevent test pollution
+  - Using assertFailed() and assertSuccessful() instead of assigning artisan() to variables prevents PendingCommand destructor issues
+  - OutputFormattingTest.php with 27 tests (the previous problematic threshold) now runs reliably both individually and in full suite
+  - Multiple consecutive runs prove the suite is stable - no flakiness or container state issues
+  - The artisan() override in TestCase automatically handles command registration, making tests clean and simple
+  - Test suite handles random ordering (different seed each run) without any failures
+  - No special handling needed for different test file sizes - the infrastructure works for all files
+---
+
