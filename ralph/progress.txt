@@ -710,3 +710,55 @@
   - All acceptance criteria were met by existing code - only needed to add comprehensive test coverage
 ---
 
+## 2026-01-29 - US-048
+- Added comprehensive Testing Patterns section to CLAUDE.md file
+- Documented feature test structure with proper beforeEach/afterEach patterns
+- Explained critical testing rules: always call clearRegistrations(), never assign artisan() to variable, call Http::fake() before register()
+- Documented TestCase infrastructure: resolveApplicationConsoleKernel(), automatic command registration via artisan() override, getPackageProviders()
+- Explained common pitfalls and solutions: Console Kernel errors, test pollution, HTTP assertion failures, artisan list verification
+- Included code examples showing proper test structure with comments
+- Added testing exit codes patterns (assertSuccessful/assertFailed)
+- Referenced Orchestra Testbench documentation links
+- All quality checks pass: composer analyse (✓), composer format (✓), composer test (✓ - 212 tests)
+- Files changed: CLAUDE.md, ralph/prd.json, ralph/progress.txt
+- **Learnings for future iterations:**
+  - Documentation is critical for preventing future iterations from repeating mistakes
+  - The Testing Patterns section consolidates all learnings from US-044, US-045, US-046, and US-047
+  - Code examples with inline comments are more valuable than prose descriptions
+  - Documenting WHY (not just HOW) helps developers understand the reasoning behind patterns
+  - Common pitfalls section helps developers quickly diagnose issues when they occur
+  - Linking to external resources (Orchestra Testbench docs) provides deeper context
+  - Clear formatting with headings, subheadings, and code blocks makes documentation scannable
+  - Testing documentation should cover both the happy path and error scenarios
+  - Explaining the TestCase infrastructure helps developers understand what they DON'T need to do
+  - This story closes the loop on the testing infrastructure work - implementation AND documentation complete
+---
+
+## 2026-01-29 - US-039
+- Verified that SchemaOutputTest.php and EndpointHelpTest.php already exist with comprehensive test coverage
+- SchemaOutputTest.php contains 8 tests covering all acceptance criteria:
+  - Valid JSON output verification
+  - Presence of openapi, paths, components, info, and servers sections
+  - Minified JSON output with --schema --minify
+  - Works without requiring endpoint argument
+- EndpointHelpTest.php contains 8 tests covering all acceptance criteria:
+  - Shows detailed help with HTTP method, path, summary, and description
+  - Shows path parameters with types and required status
+  - Shows request body schema and content-type when present
+  - Works with multiple path parameters
+  - Works with parameterized paths using braces in input
+  - Shows help for all methods when multiple methods available
+  - Does not show path parameters section when none present
+- All quality checks pass: composer analyse (✓), composer format (✓), composer test (✓ - 212 tests)
+- Files verified: tests/Feature/SchemaOutputTest.php, tests/Feature/EndpointHelpTest.php
+- No changes needed - marking story as complete
+- **Learnings for future iterations:**
+  - This story was already completed as part of US-023 (--schema flag) and US-024 (--help-endpoint flag)
+  - When implementing features, creating comprehensive tests at the same time is efficient
+  - Always verify if tests already exist before assuming they need to be created
+  - The test files follow proper patterns: clearRegistrations in beforeEach, temp file cleanup in afterEach
+  - Both test files use proper Http::fake() patterns and artisan() assertions
+  - Test coverage is comprehensive - each acceptance criterion has dedicated test cases
+  - This is another example of efficient implementation - feature work and test work done together
+---
+

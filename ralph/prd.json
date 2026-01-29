@@ -640,7 +640,7 @@
         "Explain common pitfalls and how the fixes address them"
       ],
       "priority": 47,
-      "passes": false,
+      "passes": true,
       "notes": "Documentation should help future developers avoid repeating the container error issues"
     },
     {
@@ -795,8 +795,8 @@
         "Code formatting passes (`composer format`)"
       ],
       "priority": 44,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Tests already exist from US-023 and US-024 implementations"
     },
     {
       "id": "US-040",
