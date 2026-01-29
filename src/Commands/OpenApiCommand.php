@@ -295,16 +295,30 @@ class OpenApiCommand extends Command
         // Parse the query string into key-value pairs
         parse_str($queryString, $params);
 
-        // Build the query string with URL-encoded values
+        // Build the query string with URL-encoded values, handling nested arrays
         $encodedParams = [];
-        foreach ($params as $key => $value) {
-            $encodedParams[] = urlencode($key).'='.urlencode($value);
-        }
+        $this->flattenParams($params, $encodedParams);
 
         // Append to URL with appropriate separator
         $separator = str_contains($url, '?') ? '&' : '?';
 
         return $url.$separator.implode('&', $encodedParams);
+    }
+
+    /**
+     * Flatten nested parameter arrays into encoded query string parts.
+     */
+    protected function flattenParams(array $params, array &$result, string $prefix = ''): void
+    {
+        foreach ($params as $key => $value) {
+            $fullKey = $prefix === '' ? $key : $prefix.'['.$key.']';
+
+            if (is_array($value)) {
+                $this->flattenParams($value, $result, $fullKey);
+            } else {
+                $result[] = urlencode($fullKey).'='.urlencode($value);
+            }
+        }
     }
 
     /**

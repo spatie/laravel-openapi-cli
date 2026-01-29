@@ -22,7 +22,12 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        // Register all OpenAPI commands
+        //
+    }
+
+    public function packageBooted(): void
+    {
+        // Register all OpenAPI commands after all service providers have booted
         foreach (OpenApiCli::getRegistrations() as $config) {
             $this->app->singleton($config->getSignature(), function () use ($config) {
                 return new OpenApiCommand($config);
