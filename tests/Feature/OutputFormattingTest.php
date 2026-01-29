@@ -50,7 +50,7 @@ it('pretty-prints JSON responses by default', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $expected = <<<'JSON'
 {
@@ -71,7 +71,7 @@ it('pretty-prints nested JSON structures', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $expected = <<<'JSON'
 {
@@ -99,7 +99,7 @@ it('pretty-prints JSON arrays', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $expected = <<<'JSON'
 [
@@ -125,7 +125,7 @@ it('outputs raw body for non-JSON responses (HTML)', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api html-response')
         ->expectsOutputToContain('Response is not JSON (content-type: text/html)')
@@ -139,7 +139,7 @@ it('outputs raw body for non-JSON responses (plain text)', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api plain-text')
         ->expectsOutputToContain('Response is not JSON (content-type: text/plain)')
@@ -153,7 +153,7 @@ it('outputs raw body for invalid JSON', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects')
         ->expectsOutputToContain('Response is not JSON (content-type: application/json)')
@@ -167,7 +167,7 @@ it('handles empty JSON objects', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects')
         ->expectsOutput('[]')
@@ -180,7 +180,7 @@ it('handles empty JSON arrays', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects')
         ->expectsOutput('[]')
@@ -193,7 +193,7 @@ it('preserves unicode characters in JSON output', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $expected = <<<'JSON'
 {
@@ -213,7 +213,7 @@ it('does not escape forward slashes in JSON output', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects')
         ->expectsOutputToContain('"url": "https://example.com/path/to/resource"')
@@ -233,7 +233,7 @@ it('minifies JSON output when --minify flag is provided', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->expectsOutput('{"name":"Project 1","id":123,"active":true}')
@@ -246,7 +246,7 @@ it('minifies nested JSON structures when --minify flag is provided', function ()
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->expectsOutput('{"project":{"name":"Test","metadata":{"created":"2024-01-01","tags":["api","test"]}}}')
@@ -259,7 +259,7 @@ it('minifies JSON arrays when --minify flag is provided', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->expectsOutput('[{"id":1,"name":"Project 1"},{"id":2,"name":"Project 2"}]')
@@ -272,7 +272,7 @@ it('outputs minified JSON on single line with no extra whitespace', function () 
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->expectsOutput('{"name":"Test","id":123,"active":true}')
@@ -285,7 +285,7 @@ it('preserves unicode characters in minified JSON output', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->expectsOutput('{"name":"Tëst Prøjéct","emoji":"🚀"}')
@@ -298,7 +298,7 @@ it('does not escape forward slashes in minified JSON output', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->expectsOutput('{"url":"https://example.com/path/to/resource"}')
@@ -311,7 +311,7 @@ it('minifies empty JSON objects', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->expectsOutput('[]')
@@ -324,7 +324,7 @@ it('minifies empty JSON arrays', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->expectsOutput('[]')
@@ -337,7 +337,7 @@ it('outputs raw body for non-JSON responses even with --minify flag', function (
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api html-response --minify')
         ->expectsOutputToContain('Response is not JSON (content-type: text/html)')
@@ -353,7 +353,7 @@ it('shows HTTP status line when --include flag is provided', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --include')
         ->expectsOutputToContain('HTTP/1.1 200 OK')
@@ -369,7 +369,7 @@ it('shows response headers when --include flag is provided', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --include')
         ->expectsOutputToContain('Content-Type: application/json')
@@ -385,7 +385,7 @@ it('separates headers from body with blank line when --include flag is provided'
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --include')
         ->expectsOutputToContain('Content-Type: application/json')
@@ -401,7 +401,7 @@ it('shows headers before body when --include flag is provided', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --include')
         ->expectsOutputToContain('X-Request-ID: abc-123')
@@ -415,11 +415,11 @@ it('shows headers with different status codes when --include flag is provided', 
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --include')
         ->expectsOutputToContain('HTTP/1.1 404 Not Found')
-        ->assertSuccessful();
+        ->assertFailed();
 });
 
 it('combines --include and --minify flags correctly', function () {
@@ -430,7 +430,7 @@ it('combines --include and --minify flags correctly', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --include --minify')
         ->expectsOutputToContain('HTTP/1.1 200 OK')
@@ -447,7 +447,7 @@ it('handles 204 No Content responses gracefully and exits successfully', functio
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects')
         ->expectsOutput('No content (204)')
@@ -465,7 +465,7 @@ it('shows 204 status in headers when --include flag is provided', function () {
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --include')
         ->expectsOutputToContain('HTTP/1.1 204 No Content')

@@ -83,7 +83,7 @@ test('sends single field as JSON when spec expects application/json', function (
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -103,7 +103,7 @@ test('sends multiple fields as JSON', function () {
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -122,7 +122,7 @@ test('auto-detects POST method when field is provided', function () {
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -139,7 +139,7 @@ test('can explicitly override method even with fields', function () {
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     // Using --method POST explicitly (even though it would be auto-detected)
     $this->artisan('test-api', [
@@ -159,7 +159,7 @@ test('sends fields as form-data when spec expects application/x-www-form-urlenco
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'users',
@@ -178,7 +178,7 @@ test('parses fields with = in the value correctly', function () {
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -195,7 +195,7 @@ test('handles empty field values', function () {
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -213,7 +213,7 @@ test('combines fields with authentication', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com')
         ->bearer('test-token-123');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'projects',
@@ -232,7 +232,7 @@ test('sends GET request when no fields provided', function () {
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', [
         'endpoint' => 'items',

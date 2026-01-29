@@ -94,7 +94,7 @@ it('can register command that appears in artisan list', function () {
     OpenApiCli::register($specPath, $signature);
 
     // Re-bootstrap the service provider to register commands
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $commands = array_keys(Artisan::all());
 

@@ -88,7 +88,7 @@ afterEach(function () {
 
 it('shows detailed help for a simple GET endpoint', function () {
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --help-endpoint')
         ->assertSuccessful()
@@ -99,7 +99,7 @@ it('shows detailed help for a simple GET endpoint', function () {
 
 it('shows path parameters with types and required status', function () {
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects/123 --help-endpoint')
         ->assertSuccessful()
@@ -109,7 +109,7 @@ it('shows path parameters with types and required status', function () {
 
 it('shows request body schema when present', function () {
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects/123 --help-endpoint --method POST')
         ->assertSuccessful()
@@ -123,7 +123,7 @@ it('shows request body schema when present', function () {
 
 it('shows help for endpoints with multiple path parameters', function () {
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects/123/errors/456 --help-endpoint')
         ->assertSuccessful()
@@ -135,7 +135,7 @@ it('shows help for endpoints with multiple path parameters', function () {
 
 it('shows help for parameterized paths using braces in input', function () {
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects/{projectId} --help-endpoint')
         ->assertSuccessful()
@@ -146,7 +146,7 @@ it('shows help for parameterized paths using braces in input', function () {
 
 it('shows help for all methods when endpoint has multiple methods', function () {
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects/123 --help-endpoint')
         ->assertSuccessful()
@@ -156,7 +156,7 @@ it('shows help for all methods when endpoint has multiple methods', function () 
 
 it('shows description when available', function () {
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --help-endpoint')
         ->assertSuccessful()
@@ -166,7 +166,7 @@ it('shows description when available', function () {
 
 it('does not show path parameters section when none are present', function () {
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $output = $this->artisan('test-api projects --help-endpoint')
         ->assertSuccessful()

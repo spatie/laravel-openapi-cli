@@ -81,7 +81,7 @@ it('executes GET request to simple endpoint', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $expected = <<<'JSON'
 {
@@ -108,7 +108,7 @@ it('executes GET request with path parameters', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $expected = <<<'JSON'
 {
@@ -133,7 +133,7 @@ it('executes GET request with multiple path parameters', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $expected = <<<'JSON'
 {
@@ -160,7 +160,7 @@ it('defaults to GET method when no method specified', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'projects'])
         ->assertSuccessful();
@@ -178,7 +178,7 @@ it('applies bearer authentication', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->bearer('test-token-123');
 
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'projects'])
         ->assertSuccessful();
@@ -192,7 +192,7 @@ it('shows error when endpoint not found', function () {
     Http::fake();
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'non-existent'])
         ->assertFailed()
@@ -205,7 +205,7 @@ it('shows error when method not allowed for endpoint', function () {
     Http::fake();
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'projects', '--method' => 'POST'])
         ->assertFailed()
@@ -219,7 +219,7 @@ it('shows error when no endpoint provided', function () {
     Http::fake();
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api')
         ->assertFailed()
@@ -236,7 +236,7 @@ it('uses configured base URL override', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://staging.example.com');
 
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'projects'])
         ->assertSuccessful();
@@ -252,7 +252,7 @@ it('executes explicit method with method option', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api', ['endpoint' => 'users/456/posts', '--method' => 'post'])
         ->assertSuccessful();

@@ -52,7 +52,7 @@ beforeEach(function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test:api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 });
 
 afterEach(function () {

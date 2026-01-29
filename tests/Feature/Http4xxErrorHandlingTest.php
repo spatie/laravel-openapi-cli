@@ -65,7 +65,7 @@ it('detects 400 Bad Request errors and displays status code and response body', 
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects')
         ->assertFailed()
@@ -83,7 +83,7 @@ it('detects 404 Not Found errors and displays status code and response body', fu
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects/999')
         ->assertFailed()
@@ -107,7 +107,7 @@ it('detects 422 Unprocessable Entity errors and displays validation details', fu
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --method POST')
         ->assertFailed()
@@ -126,7 +126,7 @@ it('displays 4xx error response body as pretty-printed JSON by default', functio
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects')
         ->assertFailed()
@@ -145,7 +145,7 @@ it('displays 4xx error response body as minified JSON with --minify flag', funct
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --minify')
         ->assertFailed()
@@ -163,7 +163,7 @@ it('displays 4xx error response headers with --include flag', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects --include')
         ->assertFailed()
@@ -183,7 +183,7 @@ it('displays non-JSON 4xx error responses with raw body and content-type notice'
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $this->artisan('test-api projects')
         ->assertFailed()
@@ -201,7 +201,7 @@ it('exits with non-zero code on 4xx errors', function () {
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
-    $this->app->register(\Spatie\OpenApiCli\OpenApiCliServiceProvider::class, true);
+    $this->refreshServiceProvider();
 
     $exitCode = $this->artisan('test-api projects');
 
