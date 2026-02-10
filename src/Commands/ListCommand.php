@@ -24,6 +24,16 @@ class ListCommand extends Command
 
     public function handle(): int
     {
+        $banner = $this->config->getBanner();
+        if ($banner !== null) {
+            if (is_callable($banner)) {
+                $banner($this);
+            } else {
+                $this->line($banner);
+            }
+            $this->line('');
+        }
+
         $parser = new OpenApiParser($this->config->getSpecPath());
         $pathsWithMethods = $parser->getPathsWithMethods();
         $spec = $parser->getSpec();

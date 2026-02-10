@@ -19,6 +19,9 @@ class CommandConfiguration
     /** @var callable|null */
     protected $authCallable = null;
 
+    /** @var string|callable|null */
+    protected $banner = null;
+
     protected bool $useOperationIds = false;
 
     public function __construct(
@@ -106,6 +109,18 @@ class CommandConfiguration
     public function getAuthCallable(): ?callable
     {
         return $this->authCallable;
+    }
+
+    public function banner(string|callable $banner): self
+    {
+        $this->banner = $banner;
+
+        return $this;
+    }
+
+    public function getBanner(): string|callable|null
+    {
+        return $this->banner;
     }
 
     public function useOperationIds(): self

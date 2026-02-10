@@ -161,6 +161,33 @@ GET    flare:get-projects-errors               List errors for a project
 DELETE flare:delete-projects-errors             Delete all errors for a project
 ```
 
+### Custom banner
+
+Add a banner that displays above the endpoint list when running `{prefix}:list`. This is useful for branding, ASCII art logos, or contextual information.
+
+#### String banner
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
+    ->baseUrl('https://api.example.com')
+    ->banner('🔥 Flare API v2.0');
+```
+
+#### Callable banner
+
+For full control over styling, pass a callable that receives the `Command` instance:
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
+    ->baseUrl('https://api.example.com')
+    ->banner(function ($command) {
+        $command->info('=== My API ===');
+        $command->comment('Environment: ' . app()->environment());
+    });
+```
+
+The banner only appears in the `list` command output, not when running individual endpoint commands.
+
 ### Authentication
 
 #### Bearer token
