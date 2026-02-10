@@ -6,7 +6,6 @@ use Spatie\OpenApiCli\OpenApiCli;
 beforeEach(function () {
     OpenApiCli::clearRegistrations();
 
-    // Create a temporary OpenAPI spec file for testing
     $this->specPath = sys_get_temp_dir().'/test-spec-'.uniqid().'.yaml';
 
     $spec = <<<'YAML'
@@ -71,12 +70,10 @@ YAML;
 });
 
 afterEach(function () {
-    // Clean up temp file
     if (file_exists($this->specPath)) {
         unlink($this->specPath);
     }
 
-    // Clear registrations
     OpenApiCli::clearRegistrations();
 });
 
@@ -86,8 +83,7 @@ test('sends single field as JSON when spec expects application/json', function (
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--field' => ['name=Test Project'],
     ])->assertSuccessful();
 
@@ -105,8 +101,7 @@ test('sends multiple fields as JSON', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--field' => ['name=Test Project', 'team_id=123'],
     ])->assertSuccessful();
 
@@ -117,54 +112,17 @@ test('sends multiple fields as JSON', function () {
     });
 });
 
-test('auto-detects POST method when field is provided', function () {
-    Http::fake();
-
-    OpenApiCli::register($this->specPath, 'test-api')
-        ->baseUrl('https://api.example.com');
-
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
-        '--field' => ['name=Auto POST'],
-    ])->assertSuccessful();
-
-    Http::assertSent(function ($request) {
-        return $request->method() === 'POST';
-    });
-});
-
-test('can explicitly override method even with fields', function () {
-    Http::fake();
-
-    OpenApiCli::register($this->specPath, 'test-api')
-        ->baseUrl('https://api.example.com');
-
-    // Using --method POST explicitly (even though it would be auto-detected)
-    $this->artisan('test-api', [
-        'endpoint' => 'items',
-        '--method' => 'POST',
-        '--field' => ['data=test'],
-    ])->assertSuccessful();
-
-    Http::assertSent(function ($request) {
-        return $request->method() === 'POST' &&
-               $request->url() === 'https://api.example.com/items';
-    });
-});
-
 test('sends fields as form-data when spec expects application/x-www-form-urlencoded', function () {
     Http::fake();
 
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'users',
+    $this->artisan('test-api:post-users', [
         '--field' => ['username=johndoe', 'email=john@example.com'],
     ])->assertSuccessful();
 
     Http::assertSent(function ($request) {
-        // Check that a request was sent at all
         return $request->url() === 'https://api.example.com/users' &&
                $request->method() === 'POST';
     });
@@ -176,8 +134,7 @@ test('parses fields with = in the value correctly', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--field' => ['name=Test=Value'],
     ])->assertSuccessful();
 
@@ -192,8 +149,7 @@ test('handles empty field values', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--field' => ['name='],
     ])->assertSuccessful();
 
@@ -209,8 +165,7 @@ test('combines fields with authentication', function () {
         ->baseUrl('https://api.example.com')
         ->bearer('test-token-123');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--field' => ['name=Authenticated'],
     ])->assertSuccessful();
 
@@ -227,9 +182,8 @@ test('sends GET request when no fields provided', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'items',
-    ])->assertSuccessful();
+    $this->artisan('test-api:get-items')
+        ->assertSuccessful();
 
     Http::assertSent(function ($request) {
         return $request->method() === 'GET' &&

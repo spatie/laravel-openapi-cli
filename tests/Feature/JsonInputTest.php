@@ -10,7 +10,6 @@ beforeEach(function () {
         'https://api.example.com/*' => Http::response(['success' => true], 200),
     ]);
 
-    // Create a simple OpenAPI spec
     $spec = [
         'openapi' => '3.0.0',
         'info' => ['title' => 'Test API', 'version' => '1.0.0'],
@@ -32,10 +31,6 @@ beforeEach(function () {
                 ],
             ],
             '/users' => [
-                'post' => [
-                    'summary' => 'Create user',
-                    'responses' => ['200' => ['description' => 'OK']],
-                ],
                 'put' => [
                     'summary' => 'Update user',
                     'responses' => ['200' => ['description' => 'OK']],
@@ -56,11 +51,10 @@ afterEach(function () {
     }
 });
 
-it('sends JSON input with POST method auto-detection', function () {
+it('sends JSON input with POST command', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--input' => '{"name":"Test Project","team_id":1}',
     ])->assertSuccessful();
 
@@ -74,8 +68,7 @@ it('sends JSON input with POST method auto-detection', function () {
 it('sends nested JSON structures', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--input' => '{"name":"Test","data":{"nested":true,"count":5}}',
     ])->assertSuccessful();
 
@@ -94,8 +87,7 @@ it('sends nested JSON structures', function () {
 it('sends JSON arrays', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--input' => '{"tags":["php","laravel"],"active":true}',
     ])->assertSuccessful();
 
@@ -108,12 +100,10 @@ it('sends JSON arrays', function () {
     });
 });
 
-it('works with explicit PUT method', function () {
+it('works with explicit PUT method command', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'users',
-        '--method' => 'PUT',
+    $this->artisan('test-api:put-users', [
         '--input' => '{"name":"Updated"}',
     ])->assertSuccessful();
 
@@ -127,9 +117,8 @@ it('works with explicit PUT method', function () {
 it('validates JSON syntax and shows error for invalid JSON', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
-        '--input' => '{"name":"Test"',  // Missing closing brace
+    $this->artisan('test-api:post-projects', [
+        '--input' => '{"name":"Test"',
     ])
         ->assertFailed()
         ->expectsOutput('Invalid JSON input: Syntax error');
@@ -140,8 +129,7 @@ it('validates JSON syntax and shows error for invalid JSON', function () {
 it('shows error when both --field and --input are provided', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--field' => ['name=Test'],
         '--input' => '{"name":"Test"}',
     ])
@@ -151,27 +139,11 @@ it('shows error when both --field and --input are provided', function () {
     Http::assertNothingSent();
 });
 
-it('works with query parameters', function () {
-    OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
-
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
-        '--input' => '{"name":"Test"}',
-        '--query' => 'source=cli&version=1',
-    ])->assertSuccessful();
-
-    Http::assertSent(function ($request) {
-        return $request->url() === 'https://api.example.com/projects?source=cli&version=1'
-            && $request->data() === ['name' => 'Test'];
-    });
-});
-
 it('validates JSON syntax for malformed arrays', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
-        '--input' => '{"tags":["php","laravel"',  // Missing closing brackets
+    $this->artisan('test-api:post-projects', [
+        '--input' => '{"tags":["php","laravel"',
     ])
         ->assertFailed()
         ->expectsOutputToContain('Invalid JSON input:');
@@ -182,8 +154,7 @@ it('validates JSON syntax for malformed arrays', function () {
 it('handles empty JSON objects', function () {
     OpenApiCli::register($this->specPath, 'test-api')->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api', [
-        'endpoint' => 'projects',
+    $this->artisan('test-api:post-projects', [
         '--input' => '{}',
     ])->assertSuccessful();
 

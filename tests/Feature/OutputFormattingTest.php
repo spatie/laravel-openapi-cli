@@ -6,7 +6,6 @@ use Spatie\OpenApiCli\Facades\OpenApiCli;
 beforeEach(function () {
     OpenApiCli::clearRegistrations();
 
-    // Create a minimal OpenAPI spec for testing
     $this->specContent = <<<'YAML'
 openapi: 3.0.0
 info:
@@ -61,7 +60,7 @@ it('pretty-prints JSON responses by default', function () {
 }
 JSON;
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutput($expected)
         ->assertSuccessful();
 });
@@ -88,7 +87,7 @@ it('pretty-prints nested JSON structures', function () {
 }
 JSON;
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutput($expected)
         ->assertSuccessful();
 });
@@ -113,7 +112,7 @@ it('pretty-prints JSON arrays', function () {
 ]
 JSON;
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutput($expected)
         ->assertSuccessful();
 });
@@ -125,7 +124,7 @@ it('outputs raw body for non-JSON responses (HTML)', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api html-response')
+    $this->artisan('test-api:get-html-response')
         ->expectsOutputToContain('Response is not JSON (content-type: text/html)')
         ->expectsOutputToContain('<html><body>Hello World</body></html>')
         ->assertSuccessful();
@@ -138,7 +137,7 @@ it('outputs raw body for non-JSON responses (plain text)', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api plain-text')
+    $this->artisan('test-api:get-plain-text')
         ->expectsOutputToContain('Response is not JSON (content-type: text/plain)')
         ->expectsOutputToContain('This is plain text content')
         ->assertSuccessful();
@@ -151,7 +150,7 @@ it('outputs raw body for invalid JSON', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutputToContain('Response is not JSON (content-type: application/json)')
         ->expectsOutputToContain('{"invalid": json content}')
         ->assertSuccessful();
@@ -164,7 +163,7 @@ it('handles empty JSON objects', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutput('[]')
         ->assertSuccessful();
 });
@@ -176,7 +175,7 @@ it('handles empty JSON arrays', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutput('[]')
         ->assertSuccessful();
 });
@@ -195,7 +194,7 @@ it('preserves unicode characters in JSON output', function () {
 }
 JSON;
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutput($expected)
         ->assertSuccessful();
 });
@@ -207,14 +206,9 @@ it('does not escape forward slashes in JSON output', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutputToContain('"url": "https://example.com/path/to/resource"')
         ->assertSuccessful();
-
-    // Verify slashes are NOT escaped
-    Http::assertSent(function ($request) {
-        return true; // Just need to trigger the command to check output
-    });
 });
 
 // --minify flag tests
@@ -226,7 +220,7 @@ it('minifies JSON output when --minify flag is provided', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('{"name":"Project 1","id":123,"active":true}')
         ->assertSuccessful();
 });
@@ -238,7 +232,7 @@ it('minifies nested JSON structures when --minify flag is provided', function ()
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('{"project":{"name":"Test","metadata":{"created":"2024-01-01","tags":["api","test"]}}}')
         ->assertSuccessful();
 });
@@ -250,7 +244,7 @@ it('minifies JSON arrays when --minify flag is provided', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('[{"id":1,"name":"Project 1"},{"id":2,"name":"Project 2"}]')
         ->assertSuccessful();
 });
@@ -262,7 +256,7 @@ it('outputs minified JSON on single line with no extra whitespace', function () 
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('{"name":"Test","id":123,"active":true}')
         ->assertSuccessful();
 });
@@ -274,7 +268,7 @@ it('preserves unicode characters in minified JSON output', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('{"name":"Tëst Prøjéct","emoji":"🚀"}')
         ->assertSuccessful();
 });
@@ -286,7 +280,7 @@ it('does not escape forward slashes in minified JSON output', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('{"url":"https://example.com/path/to/resource"}')
         ->assertSuccessful();
 });
@@ -298,7 +292,7 @@ it('minifies empty JSON objects', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('[]')
         ->assertSuccessful();
 });
@@ -310,7 +304,7 @@ it('minifies empty JSON arrays', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('[]')
         ->assertSuccessful();
 });
@@ -322,7 +316,7 @@ it('outputs raw body for non-JSON responses even with --minify flag', function (
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api html-response --minify')
+    $this->artisan('test-api:get-html-response', ['--minify' => true])
         ->expectsOutputToContain('Response is not JSON (content-type: text/html)')
         ->expectsOutputToContain('<html><body>Hello</body></html>')
         ->assertSuccessful();
@@ -337,7 +331,7 @@ it('shows HTTP status line when --include flag is provided', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --include')
+    $this->artisan('test-api:get-projects', ['--include' => true])
         ->expectsOutputToContain('HTTP/1.1 200 OK')
         ->assertSuccessful();
 });
@@ -352,7 +346,7 @@ it('shows response headers when --include flag is provided', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --include')
+    $this->artisan('test-api:get-projects', ['--include' => true])
         ->expectsOutputToContain('Content-Type: application/json')
         ->expectsOutputToContain('X-Custom-Header: custom-value')
         ->assertSuccessful();
@@ -367,7 +361,7 @@ it('separates headers from body with blank line when --include flag is provided'
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --include')
+    $this->artisan('test-api:get-projects', ['--include' => true])
         ->expectsOutputToContain('Content-Type: application/json')
         ->expectsOutputToContain('"name": "Project 1"')
         ->assertSuccessful();
@@ -382,7 +376,7 @@ it('shows headers before body when --include flag is provided', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --include')
+    $this->artisan('test-api:get-projects', ['--include' => true])
         ->expectsOutputToContain('X-Request-ID: abc-123')
         ->expectsOutputToContain('"id": 123')
         ->assertSuccessful();
@@ -395,7 +389,7 @@ it('shows headers with different status codes when --include flag is provided', 
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --include')
+    $this->artisan('test-api:get-projects', ['--include' => true])
         ->expectsOutputToContain('HTTP/1.1 404 Not Found')
         ->assertFailed();
 });
@@ -409,7 +403,7 @@ it('combines --include and --minify flags correctly', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --include --minify')
+    $this->artisan('test-api:get-projects', ['--include' => true, '--minify' => true])
         ->expectsOutputToContain('HTTP/1.1 200 OK')
         ->expectsOutputToContain('Content-Type: application/json')
         ->expectsOutputToContain('{"name":"Project 1","id":123}')
@@ -425,11 +419,10 @@ it('handles 204 No Content responses gracefully and exits successfully', functio
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->expectsOutput('No content (204)')
         ->assertSuccessful();
 
-    // Verify request was sent
     Http::assertSent(function ($request) {
         return $request->url() === 'https://api.example.com/projects';
     });
@@ -442,7 +435,7 @@ it('shows 204 status in headers when --include flag is provided', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api projects --include')
+    $this->artisan('test-api:get-projects', ['--include' => true])
         ->expectsOutputToContain('HTTP/1.1 204 No Content')
         ->expectsOutputToContain('No content (204)')
         ->assertSuccessful();

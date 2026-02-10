@@ -19,9 +19,11 @@ class CommandConfiguration
     /** @var callable|null */
     protected $authCallable = null;
 
+    protected bool $useOperationIds = false;
+
     public function __construct(
         protected string $specPath,
-        protected string $signature
+        protected string $prefix
     ) {}
 
     public function getSpecPath(): string
@@ -29,9 +31,9 @@ class CommandConfiguration
         return $this->specPath;
     }
 
-    public function getSignature(): string
+    public function getPrefix(): string
     {
-        return $this->signature;
+        return $this->prefix;
     }
 
     public function baseUrl(string $url): self
@@ -104,5 +106,17 @@ class CommandConfiguration
     public function getAuthCallable(): ?callable
     {
         return $this->authCallable;
+    }
+
+    public function useOperationIds(): self
+    {
+        $this->useOperationIds = true;
+
+        return $this;
+    }
+
+    public function shouldUseOperationIds(): bool
+    {
+        return $this->useOperationIds;
     }
 }

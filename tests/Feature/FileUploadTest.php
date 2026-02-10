@@ -6,7 +6,6 @@ use Spatie\OpenApiCli\Facades\OpenApiCli;
 beforeEach(function () {
     OpenApiCli::clearRegistrations();
 
-    // Create a temporary OpenAPI spec file for testing
     $spec = [
         'openapi' => '3.0.0',
         'info' => ['title' => 'Test API', 'version' => '1.0.0'],
@@ -53,7 +52,7 @@ beforeEach(function () {
         'api.example.com/*' => Http::response(['success' => true], 200),
     ]);
 
-    OpenApiCli::register($this->specPath, 'test:api');
+    OpenApiCli::register($this->specPath, 'test-api');
 });
 
 afterEach(function () {
@@ -70,12 +69,10 @@ afterEach(function () {
 });
 
 it('uploads a file using @ prefix', function () {
-    $this->artisan('test:api', [
-        'endpoint' => 'upload',
+    $this->artisan('test-api:post-upload', [
         '--field' => ["file=@{$this->testFile1}"],
     ])->assertSuccessful();
 
-    // First check that any request was sent
     Http::assertSentCount(1);
 
     Http::assertSent(function ($request) {
@@ -90,8 +87,7 @@ it('uploads a file using @ prefix', function () {
 });
 
 it('uploads a file with regular fields', function () {
-    $this->artisan('test:api', [
-        'endpoint' => 'upload',
+    $this->artisan('test-api:post-upload', [
         '--field' => ["file=@{$this->testFile1}", 'name=MyDocument'],
     ])->assertSuccessful();
 
@@ -109,8 +105,7 @@ it('uploads a file with regular fields', function () {
 });
 
 it('uploads multiple files', function () {
-    $this->artisan('test:api', [
-        'endpoint' => 'documents',
+    $this->artisan('test-api:post-documents', [
         '--field' => ["document1=@{$this->testFile1}", "document2=@{$this->testFile2}"],
     ])->assertSuccessful();
 
@@ -128,8 +123,7 @@ it('uploads multiple files', function () {
 });
 
 it('uploads multiple files with mixed regular fields', function () {
-    $this->artisan('test:api', [
-        'endpoint' => 'documents',
+    $this->artisan('test-api:post-documents', [
         '--field' => [
             "file1=@{$this->testFile1}",
             'title=Important Documents',
@@ -158,8 +152,7 @@ it('uploads multiple files with mixed regular fields', function () {
 it('shows error when file does not exist', function () {
     $nonExistentFile = '/path/to/nonexistent/file.txt';
 
-    $this->artisan('test:api', [
-        'endpoint' => 'upload',
+    $this->artisan('test-api:post-upload', [
         '--field' => ["file=@{$nonExistentFile}"],
     ])
         ->assertFailed()
@@ -174,8 +167,7 @@ it('shows error when file is not readable', function () {
     chmod($unreadableFile, 0000);
 
     try {
-        $this->artisan('test:api', [
-            'endpoint' => 'upload',
+        $this->artisan('test-api:post-upload', [
             '--field' => ["file=@{$unreadableFile}"],
         ])
             ->assertFailed()
@@ -188,37 +180,11 @@ it('shows error when file is not readable', function () {
     }
 });
 
-it('auto-detects POST method when file upload is used', function () {
-    $this->artisan('test:api', [
-        'endpoint' => 'upload',
-        '--field' => ["file=@{$this->testFile1}"],
-        // No --method specified, should auto-detect POST
-    ])->assertSuccessful();
-
-    Http::assertSent(function ($request) {
-        return $request->method() === 'POST';
-    });
-});
-
-it('allows explicit method override with file upload', function () {
-    // Even though POST is auto-detected, user can override
-    $this->artisan('test:api', [
-        'endpoint' => 'upload',
-        '--method' => 'POST',
-        '--field' => ["file=@{$this->testFile1}"],
-    ])->assertSuccessful();
-
-    Http::assertSent(function ($request) {
-        return $request->method() === 'POST';
-    });
-});
-
 it('sends file content correctly', function () {
     $customContent = "This is custom file content\nwith multiple lines\nand special chars: !@#$%";
     file_put_contents($this->testFile1, $customContent);
 
-    $this->artisan('test:api', [
-        'endpoint' => 'upload',
+    $this->artisan('test-api:post-upload', [
         '--field' => ["file=@{$this->testFile1}"],
     ])->assertSuccessful();
 
@@ -232,13 +198,11 @@ it('sends file content correctly', function () {
 });
 
 it('preserves filename from file path', function () {
-    $this->artisan('test:api', [
-        'endpoint' => 'upload',
+    $this->artisan('test-api:post-upload', [
         '--field' => ["file=@{$this->testFile1}"],
     ])->assertSuccessful();
 
     Http::assertSent(function ($request) {
-        // The filename should be preserved (basename of the file path)
         $filename = basename($this->testFile1);
         $body = $request->body();
 

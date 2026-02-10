@@ -6,30 +6,29 @@ use Illuminate\Support\Facades\Artisan;
 use Spatie\OpenApiCli\OpenApiCli;
 
 beforeEach(function () {
-    // Clear registrations before each test
     OpenApiCli::clearRegistrations();
 });
 
-it('registers a command with the specified signature', function () {
+it('registers a command with the specified prefix', function () {
     $specPath = __DIR__.'/../../flare-api.yaml';
-    $signature = 'test:flare-api';
+    $prefix = 'test-flare';
 
-    $config = OpenApiCli::register($specPath, $signature);
+    $config = OpenApiCli::register($specPath, $prefix);
 
     expect($config->getSpecPath())->toBe($specPath)
-        ->and($config->getSignature())->toBe($signature);
+        ->and($config->getPrefix())->toBe($prefix);
 
     $registrations = OpenApiCli::getRegistrations();
     expect($registrations)->toHaveCount(1)
         ->and($registrations[0])->toBe($config);
 });
 
-it('can register multiple specs with different command names', function () {
+it('can register multiple specs with different prefixes', function () {
     $specPath1 = __DIR__.'/../../flare-api.yaml';
     $specPath2 = __DIR__.'/../../flare-api.yaml';
 
-    $config1 = OpenApiCli::register($specPath1, 'test:api1');
-    $config2 = OpenApiCli::register($specPath2, 'test:api2');
+    $config1 = OpenApiCli::register($specPath1, 'api1');
+    $config2 = OpenApiCli::register($specPath2, 'api2');
 
     $registrations = OpenApiCli::getRegistrations();
     expect($registrations)->toHaveCount(2)
@@ -40,7 +39,7 @@ it('can register multiple specs with different command names', function () {
 it('returns a fluent configuration object for chaining', function () {
     $specPath = __DIR__.'/../../flare-api.yaml';
 
-    $config = OpenApiCli::register($specPath, 'test:flare-api')
+    $config = OpenApiCli::register($specPath, 'test-flare')
         ->baseUrl('https://api.example.com')
         ->bearer('test-token');
 
@@ -51,7 +50,7 @@ it('returns a fluent configuration object for chaining', function () {
 it('can chain all fluent methods', function () {
     $specPath = __DIR__.'/../../flare-api.yaml';
 
-    $config = OpenApiCli::register($specPath, 'test:flare-api')
+    $config = OpenApiCli::register($specPath, 'test-flare')
         ->baseUrl('https://api.example.com')
         ->bearer('test-token')
         ->apiKey('X-API-Key', 'key-value')
@@ -69,7 +68,7 @@ it('can configure callable auth', function () {
     $specPath = __DIR__.'/../../flare-api.yaml';
     $callable = fn () => 'dynamic-token';
 
-    $config = OpenApiCli::register($specPath, 'test:flare-api')
+    $config = OpenApiCli::register($specPath, 'test-flare')
         ->auth($callable);
 
     expect($config->getAuthCallable())->toBe($callable)
@@ -77,8 +76,8 @@ it('can configure callable auth', function () {
 });
 
 it('clears all registrations', function () {
-    OpenApiCli::register(__DIR__.'/../../flare-api.yaml', 'test:api1');
-    OpenApiCli::register(__DIR__.'/../../flare-api.yaml', 'test:api2');
+    OpenApiCli::register(__DIR__.'/../../flare-api.yaml', 'api1');
+    OpenApiCli::register(__DIR__.'/../../flare-api.yaml', 'api2');
 
     expect(OpenApiCli::getRegistrations())->toHaveCount(2);
 
@@ -87,17 +86,40 @@ it('clears all registrations', function () {
     expect(OpenApiCli::getRegistrations())->toHaveCount(0);
 });
 
-it('can register command that appears in artisan list', function () {
+it('registers per-endpoint commands that appear in artisan list', function () {
     $specPath = __DIR__.'/../../flare-api.yaml';
-    $signature = 'test:flare-api-check';
 
-    OpenApiCli::register($specPath, $signature);
+    OpenApiCli::register($specPath, 'flare');
 
-    // Trigger command registration by calling artisan (which calls our override)
-    // This ensures the command is registered before checking Artisan::all()
     $this->registerOpenApiCommands();
 
     $commands = array_keys(Artisan::all());
 
-    expect($commands)->toContain($signature);
+    expect($commands)->toContain('flare:get-me')
+        ->toContain('flare:get-projects')
+        ->toContain('flare:post-projects')
+        ->toContain('flare:list');
+});
+
+it('registers commands with path parameters as options', function () {
+    $specPath = __DIR__.'/../../flare-api.yaml';
+
+    OpenApiCli::register($specPath, 'flare');
+
+    $this->registerOpenApiCommands();
+
+    $commands = array_keys(Artisan::all());
+
+    expect($commands)->toContain('flare:get-projects-errors')
+        ->toContain('flare:delete-projects-errors')
+        ->toContain('flare:delete-teams-users');
+});
+
+it('can enable useOperationIds mode', function () {
+    $specPath = __DIR__.'/../../flare-api.yaml';
+
+    $config = OpenApiCli::register($specPath, 'test-flare')
+        ->useOperationIds();
+
+    expect($config->shouldUseOperationIds())->toBeTrue();
 });

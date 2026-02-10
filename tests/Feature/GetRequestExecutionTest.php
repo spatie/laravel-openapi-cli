@@ -8,7 +8,6 @@ use Spatie\OpenApiCli\OpenApiCli;
 beforeEach(function () {
     OpenApiCli::clearRegistrations();
 
-    // Create a minimal OpenAPI spec for testing
     $spec = [
         'openapi' => '3.0.0',
         'info' => ['title' => 'Test API', 'version' => '1.0.0'],
@@ -19,13 +18,11 @@ beforeEach(function () {
             '/projects' => [
                 'get' => [
                     'summary' => 'List all projects',
-                    'operationId' => 'listProjects',
                 ],
             ],
             '/projects/{id}' => [
                 'get' => [
                     'summary' => 'Get a project',
-                    'operationId' => 'getProject',
                     'parameters' => [
                         [
                             'name' => 'id',
@@ -39,7 +36,6 @@ beforeEach(function () {
             '/users/{userId}/posts' => [
                 'get' => [
                     'summary' => 'List user posts',
-                    'operationId' => 'listUserPosts',
                     'parameters' => [
                         [
                             'name' => 'userId',
@@ -51,7 +47,6 @@ beforeEach(function () {
                 ],
                 'post' => [
                     'summary' => 'Create a post',
-                    'operationId' => 'createPost',
                     'parameters' => [
                         [
                             'name' => 'userId',
@@ -67,8 +62,6 @@ beforeEach(function () {
 
     $this->specPath = sys_get_temp_dir().'/test_spec_'.uniqid().'.json';
     file_put_contents($this->specPath, json_encode($spec));
-
-    OpenApiCli::clearRegistrations();
 });
 
 afterEach(function () {
@@ -93,7 +86,7 @@ it('executes GET request to simple endpoint', function () {
 }
 JSON;
 
-    $this->artisan('test-api', ['endpoint' => 'projects'])
+    $this->artisan('test-api:get-projects')
         ->assertSuccessful()
         ->expectsOutput($expected);
 
@@ -103,7 +96,7 @@ JSON;
     });
 });
 
-it('executes GET request with path parameters', function () {
+it('executes GET request with path parameters via options', function () {
     Http::fake([
         'https://api.example.com/projects/123' => Http::response('{"id":123,"name":"Test Project"}', 200),
     ]);
@@ -117,7 +110,7 @@ it('executes GET request with path parameters', function () {
 }
 JSON;
 
-    $this->artisan('test-api', ['endpoint' => 'projects/123'])
+    $this->artisan('test-api:get-projects-id', ['--id' => '123'])
         ->assertSuccessful()
         ->expectsOutput($expected);
 
@@ -127,44 +120,19 @@ JSON;
     });
 });
 
-it('executes GET request with multiple path parameters', function () {
+it('executes GET request with camelCase path parameter', function () {
     Http::fake([
         'https://api.example.com/users/456/posts' => Http::response('{"posts":["post1","post2"]}', 200),
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $expected = <<<'JSON'
-{
-    "posts": [
-        "post1",
-        "post2"
-    ]
-}
-JSON;
-
-    $this->artisan('test-api', ['endpoint' => 'users/456/posts'])
-        ->assertSuccessful()
-        ->expectsOutput($expected);
+    $this->artisan('test-api:get-users-posts', ['--user-id' => '456'])
+        ->assertSuccessful();
 
     Http::assertSent(function ($request) {
         return $request->url() === 'https://api.example.com/users/456/posts'
             && $request->method() === 'GET';
-    });
-});
-
-it('defaults to GET method when no method specified', function () {
-    Http::fake([
-        'api.example.com/projects' => Http::response(['data' => []], 200),
-    ]);
-
-    OpenApiCli::register($this->specPath, 'test-api');
-
-    $this->artisan('test-api', ['endpoint' => 'projects'])
-        ->assertSuccessful();
-
-    Http::assertSent(function ($request) {
-        return $request->method() === 'GET';
     });
 });
 
@@ -176,49 +144,12 @@ it('applies bearer authentication', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->bearer('test-token-123');
 
-    $this->artisan('test-api', ['endpoint' => 'projects'])
+    $this->artisan('test-api:get-projects')
         ->assertSuccessful();
 
     Http::assertSent(function ($request) {
         return $request->hasHeader('Authorization', 'Bearer test-token-123');
     });
-});
-
-it('shows error when endpoint not found', function () {
-    Http::fake();
-
-    OpenApiCli::register($this->specPath, 'test-api');
-
-    $this->artisan('test-api', ['endpoint' => 'non-existent'])
-        ->assertFailed()
-        ->expectsOutput('Endpoint not found in OpenAPI spec.');
-
-    Http::assertNothingSent();
-});
-
-it('shows error when method not allowed for endpoint', function () {
-    Http::fake();
-
-    OpenApiCli::register($this->specPath, 'test-api');
-
-    $this->artisan('test-api', ['endpoint' => 'projects', '--method' => 'POST'])
-        ->assertFailed()
-        ->expectsOutput('Method POST is not allowed for this endpoint.')
-        ->expectsOutput('Available methods: GET');
-
-    Http::assertNothingSent();
-});
-
-it('shows error when no endpoint provided', function () {
-    Http::fake();
-
-    OpenApiCli::register($this->specPath, 'test-api');
-
-    $this->artisan('test-api')
-        ->assertFailed()
-        ->expectsOutput('Please provide an endpoint path.');
-
-    Http::assertNothingSent();
 });
 
 it('uses configured base URL override', function () {
@@ -229,7 +160,7 @@ it('uses configured base URL override', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://staging.example.com');
 
-    $this->artisan('test-api', ['endpoint' => 'projects'])
+    $this->artisan('test-api:get-projects')
         ->assertSuccessful();
 
     Http::assertSent(function ($request) {
@@ -237,14 +168,14 @@ it('uses configured base URL override', function () {
     });
 });
 
-it('executes explicit method with method option', function () {
+it('executes POST to endpoint', function () {
     Http::fake([
         'api.example.com/users/456/posts' => Http::response(['success' => true], 201),
     ]);
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api', ['endpoint' => 'users/456/posts', '--method' => 'post'])
+    $this->artisan('test-api:post-users-posts', ['--user-id' => '456'])
         ->assertSuccessful();
 
     Http::assertSent(function ($request) {

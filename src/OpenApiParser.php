@@ -94,6 +94,42 @@ class OpenApiParser
         return $pathParams;
     }
 
+    public function getOperationId(string $path, string $method): ?string
+    {
+        $method = strtolower($method);
+
+        return $this->spec['paths'][$path][$method]['operationId'] ?? null;
+    }
+
+    /**
+     * @return array<int, array{name: string, required: bool, description: string}>
+     */
+    public function getQueryParameters(string $path, string $method): array
+    {
+        $method = strtolower($method);
+        $operation = $this->spec['paths'][$path][$method] ?? [];
+        $parameters = $operation['parameters'] ?? [];
+
+        $resolver = new RefResolver($this->spec);
+
+        $queryParams = [];
+
+        foreach ($parameters as $param) {
+            // Resolve $ref if present
+            $param = $resolver->resolve($param);
+
+            if (($param['in'] ?? '') === 'query') {
+                $queryParams[] = [
+                    'name' => $param['name'] ?? '',
+                    'required' => $param['required'] ?? false,
+                    'description' => $param['description'] ?? '',
+                ];
+            }
+        }
+
+        return $queryParams;
+    }
+
     public function getRequestBodySchema(string $path, string $method): ?array
     {
         $method = strtolower($method);

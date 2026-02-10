@@ -4,12 +4,20 @@ namespace Spatie\OpenApiCli\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Spatie\OpenApiCli\CommandNameGenerator;
+use Spatie\OpenApiCli\Commands\EndpointCommand;
+use Spatie\OpenApiCli\Commands\ListCommand;
 use Spatie\OpenApiCli\OpenApiCliServiceProvider;
+use Spatie\OpenApiCli\OpenApiParser;
+use Spatie\OpenApiCli\RefResolver;
 
 class TestCase extends Orchestra
 {
     protected function setUp(): void
     {
+        // Clear registrations before booting the app to prevent stale spec file references
+        \Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
+
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
@@ -28,9 +36,6 @@ class TestCase extends Orchestra
         parent::tearDown();
     }
 
-    /**
-     * Ensure the Console Kernel is properly bound in the container.
-     */
     protected function ensureConsoleKernelBound(): void
     {
         if (isset($this->app)) {
@@ -51,79 +56,112 @@ class TestCase extends Orchestra
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
-
-        /*
-         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/../database/migrations') as $migration) {
-            (include $migration->getRealPath())->up();
-         }
-         */
     }
 
-    /**
-     * Resolve application Console Kernel implementation.
-     *
-     * This method ensures the Console Kernel is properly bound to prevent
-     * "Target [Illuminate\Contracts\Console\Kernel] is not instantiable" errors
-     * when running multiple tests with artisan command execution.
-     *
-     * @param  \Illuminate\Foundation\Application  $app
-     * @return void
-     */
     protected function resolveApplicationConsoleKernel($app)
     {
         $app->singleton(\Illuminate\Contracts\Console\Kernel::class, \Orchestra\Testbench\Console\Kernel::class);
     }
 
-    /**
-     * Override artisan() method to automatically register OpenAPI commands before execution.
-     *
-     * This ensures that any commands registered via OpenApiCli::register() are available
-     * to artisan without requiring manual intervention in each test.
-     */
     public function artisan($command, $parameters = [])
     {
-        // Automatically register any OpenAPI commands that were registered since setUp()
         $this->registerOpenApiCommands();
 
         return parent::artisan($command, $parameters);
     }
 
-    /**
-     * Register OpenAPI commands without re-registering the service provider.
-     *
-     * This method registers commands that were added via OpenApiCli::register()
-     * without disrupting the application container state.
-     */
     protected function registerOpenApiCommands(): void
     {
-        // Ensure Console Kernel binding exists before we try to use it
         $this->ensureConsoleKernelBound();
 
-        // Manually register all OpenAPI commands
         foreach (\Spatie\OpenApiCli\Facades\OpenApiCli::getRegistrations() as $config) {
-            $signature = $config->getSignature();
+            $parser = new OpenApiParser($config->getSpecPath());
+            $spec = $parser->getSpec();
+            $resolver = new RefResolver($spec);
+            $pathsWithMethods = $parser->getPathsWithMethods();
+            $prefix = $config->getPrefix();
 
-            // Re-bind the command with the current configuration
-            // This ensures we always use the latest spec path
-            $this->app->singleton($signature, function () use ($config) {
-                return new \Spatie\OpenApiCli\Commands\OpenApiCommand($config);
+            $endpoints = $this->resolveEndpoints($config, $pathsWithMethods, $spec, $resolver);
+
+            $commandBindings = [];
+
+            foreach ($endpoints as $endpoint) {
+                $commandSuffix = $endpoint['commandSuffix'];
+                $bindingKey = "openapi.{$prefix}.{$commandSuffix}";
+
+                $this->app->singleton($bindingKey, function () use ($config, $endpoint, $commandSuffix) {
+                    return new EndpointCommand($config, $endpoint['method'], $endpoint['path'], $endpoint['operationData'], $commandSuffix);
+                });
+
+                $commandBindings[] = $bindingKey;
+            }
+
+            // Register list command
+            $listBindingKey = "openapi.{$prefix}.list";
+            $this->app->singleton($listBindingKey, function () use ($config) {
+                return new ListCommand($config);
             });
+            $commandBindings[] = $listBindingKey;
 
-            // Check if command is already registered with Artisan
+            // Register all commands with Artisan
             $kernel = $this->app->make(\Illuminate\Contracts\Console\Kernel::class);
-            $commands = $kernel->all();
 
-            // Only register if not already in Artisan's command list
-            if (! isset($commands[$signature])) {
+            foreach ($commandBindings as $binding) {
                 try {
-                    $kernel->registerCommand($this->app->make($signature));
+                    $command = $this->app->make($binding);
+                    $kernel->registerCommand($command);
                 } catch (\Exception $e) {
-                    // If registration fails, ensure Console Kernel is bound and retry
                     $this->ensureConsoleKernelBound();
+                    $command = $this->app->make($binding);
                     $this->app->make(\Illuminate\Contracts\Console\Kernel::class)
-                        ->registerCommand($this->app->make($signature));
+                        ->registerCommand($command);
                 }
             }
         }
+    }
+
+    /**
+     * @return array<int, array{method: string, path: string, operationData: array, commandSuffix: string}>
+     */
+    protected function resolveEndpoints(\Spatie\OpenApiCli\CommandConfiguration $config, array $pathsWithMethods, array $spec, RefResolver $resolver): array
+    {
+        $endpoints = [];
+
+        foreach ($pathsWithMethods as $path => $methods) {
+            foreach ($methods as $method) {
+                $operationData = $spec['paths'][$path][$method] ?? [];
+                $operationData = $resolver->resolve($operationData);
+
+                if ($config->shouldUseOperationIds()) {
+                    $operationId = $operationData['operationId'] ?? null;
+                    $commandSuffix = $operationId
+                        ? CommandNameGenerator::fromOperationId($operationId)
+                        : CommandNameGenerator::fromPath($method, $path);
+                } else {
+                    $commandSuffix = CommandNameGenerator::fromPath($method, $path);
+                }
+
+                $endpoints[] = [
+                    'method' => $method,
+                    'path' => $path,
+                    'operationData' => $operationData,
+                    'commandSuffix' => $commandSuffix,
+                ];
+            }
+        }
+
+        // Detect and resolve naming collisions
+        $suffixCounts = [];
+        foreach ($endpoints as $endpoint) {
+            $suffixCounts[$endpoint['commandSuffix']] = ($suffixCounts[$endpoint['commandSuffix']] ?? 0) + 1;
+        }
+
+        foreach ($endpoints as &$endpoint) {
+            if ($suffixCounts[$endpoint['commandSuffix']] > 1) {
+                $endpoint['commandSuffix'] = CommandNameGenerator::fromPathDisambiguated($endpoint['method'], $endpoint['path']);
+            }
+        }
+
+        return $endpoints;
     }
 }

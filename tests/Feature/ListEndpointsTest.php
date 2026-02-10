@@ -27,11 +27,23 @@ paths:
   /projects/{projectId}:
     get:
       summary: Get a specific project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: Success
     delete:
       summary: Delete a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '204':
           description: No Content
@@ -57,38 +69,41 @@ afterEach(function () {
     \Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
 });
 
-it('lists all endpoints when --list flag is used', function () {
-    // This test verifies that all endpoints are listed
-    // Specific content checks are covered by other tests
-    $this->artisan('test-api', ['--list' => true])
+it('lists all endpoints with GET methods', function () {
+    $this->artisan('test-api:list')
         ->assertSuccessful()
-        ->expectsOutputToContain('GET')
-        ->expectsOutputToContain('/projects');
+        ->expectsOutputToContain('GET');
 });
 
 it('displays summary field when available', function () {
-    $this->artisan('test-api', ['--list' => true])
+    $this->artisan('test-api:list')
         ->assertSuccessful()
         ->expectsOutputToContain('List all projects');
 });
 
 it('displays description field when summary is not available', function () {
-    $this->artisan('test-api', ['--list' => true])
+    $this->artisan('test-api:list')
         ->assertSuccessful()
         ->expectsOutputToContain('Retrieve all users from the system');
 });
 
 it('includes multiple HTTP methods for the same endpoint', function () {
-    // Uses the test-api command which has GET and POST for /projects
-    $this->artisan('test-api', ['--list' => true])
+    $this->artisan('test-api:list')
         ->assertSuccessful()
         ->expectsOutputToContain('GET')
         ->expectsOutputToContain('POST')
         ->expectsOutputToContain('DELETE');
 });
 
-it('works with --list flag without requiring endpoint argument', function () {
-    // The --list flag should work even if no endpoint is provided
-    $this->artisan('test-api', ['--list' => true])
-        ->assertSuccessful();
+it('displays command names in list output', function () {
+    $this->artisan('test-api:list')
+        ->assertSuccessful()
+        ->expectsOutputToContain('test-api:post-projects')
+        ->expectsOutputToContain('test-api:delete-projects');
+});
+
+it('shows disambiguated command names for colliding paths', function () {
+    $this->artisan('test-api:list')
+        ->assertSuccessful()
+        ->expectsOutputToContain('test-api:get-projects-project-id');
 });

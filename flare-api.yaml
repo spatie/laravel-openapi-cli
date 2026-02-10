@@ -1243,6 +1243,7 @@ components:
 paths:
   /me:
     get:
+      operationId: get-authenticated-user
       tags:
         - user
       summary: Get the authenticated user.
@@ -1255,6 +1256,7 @@ paths:
                 $ref: '#/components/schemas/user'
   /projects:
     get:
+      operationId: list-projects
       tags:
         - projects
       summary: Get all projects.
@@ -1308,6 +1310,7 @@ paths:
                         items:
                           $ref: '#/components/schemas/project'
     post:
+      operationId: create-project
       tags:
         - projects
       summary: Create a new project.
@@ -1372,6 +1375,7 @@ paths:
                 $ref: '#/components/schemas/project'
   /projects/{project_id}/errors:
     get:
+      operationId: list-project-errors
       tags:
         - errors
       summary: Get all errors within a project.
@@ -1513,6 +1517,7 @@ paths:
                         items:
                           $ref: '#/components/schemas/error'
     delete:
+      operationId: delete-project
       tags:
         - projects
       summary: Delete a project.
@@ -1529,6 +1534,7 @@ paths:
           description: Successful response
   /projects/{project_id}/error-count:
     get:
+      operationId: get-project-error-count
       tags:
         - errors
       summary: Get the number of errors in the given period.
@@ -1573,6 +1579,7 @@ paths:
                     description: The number of errors that occurred.
   /projects/{project_id}/error-occurrence-count:
     get:
+      operationId: get-project-error-occurrence-count
       tags:
         - errors
       summary: Get the number of error occurrences in the given period.
@@ -1617,6 +1624,7 @@ paths:
                     description: The number of error occurrences that occurred.
   /teams/{team_id}:
     get:
+      operationId: get-team
       tags:
         - teams
       summary: Get a team.
@@ -1637,6 +1645,7 @@ paths:
                 $ref: '#/components/schemas/team'
   /teams/{team_id}/users/{user_id}:
     delete:
+      operationId: remove-team-user
       tags:
         - teams
       summary: Remove a user from a team.
@@ -1660,6 +1669,7 @@ paths:
           description: Successful response
   /errors/{error_id}/occurrences:
     get:
+      operationId: list-error-occurrences
       tags:
         - error occurrences
       summary: Get all occurrences for an error.
@@ -1700,6 +1710,7 @@ paths:
                           $ref: '#/components/schemas/errorOccurrence'
   /errors/{error_id}/resolve:
     post:
+      operationId: resolve-error
       tags:
         - errors
       summary: Resolve an error.
@@ -1720,6 +1731,7 @@ paths:
                 $ref: '#/components/schemas/error'
   /errors/{error_id}/open:
     post:
+      operationId: unresolve-error
       tags:
         - errors
       summary: Reopen an error.
@@ -1740,6 +1752,7 @@ paths:
                 $ref: '#/components/schemas/error'
   /error-occurrences/{occurrence_id}:
     get:
+      operationId: get-error-occurrence
       tags:
         - error occurrences
       summary: Get an error occurrence.

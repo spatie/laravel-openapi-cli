@@ -7,7 +7,6 @@ use Symfony\Component\Yaml\Yaml;
 beforeEach(function () {
     OpenApiCli::clearRegistrations();
 
-    // Create a temporary OpenAPI spec file for testing
     $this->specPath = sys_get_temp_dir().'/test-spec-5xx-'.uniqid().'.yaml';
 
     $spec = [
@@ -23,17 +22,14 @@ beforeEach(function () {
             '/projects' => [
                 'get' => [
                     'summary' => 'List projects',
-                    'operationId' => 'listProjects',
                 ],
                 'post' => [
                     'summary' => 'Create project',
-                    'operationId' => 'createProject',
                 ],
             ],
             '/projects/{id}' => [
                 'get' => [
                     'summary' => 'Get project',
-                    'operationId' => 'getProject',
                     'parameters' => [
                         [
                             'name' => 'id',
@@ -68,7 +64,7 @@ it('detects 500 Internal Server Error and displays status code and response body
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 500 Error')
         ->expectsOutputToContain('Internal Server Error');
@@ -84,7 +80,7 @@ it('detects 502 Bad Gateway errors and displays status code and response body', 
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api projects/123')
+    $this->artisan('test-api:get-projects-id', ['--id' => '123'])
         ->assertFailed()
         ->expectsOutputToContain('HTTP 502 Error')
         ->expectsOutputToContain('Bad Gateway');
@@ -100,7 +96,7 @@ it('detects 503 Service Unavailable errors and displays status code and response
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api projects --method POST')
+    $this->artisan('test-api:post-projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 503 Error')
         ->expectsOutputToContain('Service Unavailable');
@@ -116,7 +112,7 @@ it('displays 5xx error response body as pretty-printed JSON by default', functio
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 500 Error')
         ->expectsOutputToContain('Internal Server Error');
@@ -132,7 +128,7 @@ it('displays 5xx error response body as minified JSON with --minify flag', funct
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api projects --minify')
+    $this->artisan('test-api:get-projects', ['--minify' => true])
         ->assertFailed()
         ->expectsOutputToContain('HTTP 500 Error')
         ->expectsOutputToContain('{"error":"Internal Server Error","code":"DB_CONNECTION_FAILED"}');
@@ -149,7 +145,7 @@ it('displays 5xx error response headers with --include flag', function () {
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api projects --include')
+    $this->artisan('test-api:get-projects', ['--include' => true])
         ->assertFailed()
         ->expectsOutputToContain('HTTP 503 Error')
         ->expectsOutputToContain('HTTP/1.1 503 Service Unavailable')
@@ -168,7 +164,7 @@ it('displays non-JSON 5xx error responses with raw body and content-type notice'
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 500 Error')
         ->expectsOutputToContain('Response is not JSON (content-type: text/html)')
@@ -185,6 +181,6 @@ it('exits with non-zero code on 5xx errors', function () {
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->assertFailed();
 });

@@ -4,7 +4,8 @@ namespace Spatie\OpenApiCli;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Spatie\OpenApiCli\Commands\OpenApiCommand;
+use Spatie\OpenApiCli\Commands\EndpointCommand;
+use Spatie\OpenApiCli\Commands\ListCommand;
 
 class OpenApiCliServiceProvider extends PackageServiceProvider
 {
@@ -27,13 +28,89 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        // Register all OpenAPI commands after all service providers have booted
         foreach (OpenApiCli::getRegistrations() as $config) {
-            $this->app->singleton($config->getSignature(), function () use ($config) {
-                return new OpenApiCommand($config);
+            $this->registerEndpointCommands($config);
+        }
+    }
+
+    protected function registerEndpointCommands(CommandConfiguration $config): void
+    {
+        $parser = new OpenApiParser($config->getSpecPath());
+        $spec = $parser->getSpec();
+        $resolver = new RefResolver($spec);
+        $pathsWithMethods = $parser->getPathsWithMethods();
+        $prefix = $config->getPrefix();
+
+        $endpoints = $this->resolveEndpoints($config, $pathsWithMethods, $spec, $resolver);
+
+        $commandBindings = [];
+
+        foreach ($endpoints as $endpoint) {
+            $commandSuffix = $endpoint['commandSuffix'];
+            $bindingKey = "openapi.{$prefix}.{$commandSuffix}";
+
+            $this->app->singleton($bindingKey, function () use ($config, $endpoint, $commandSuffix) {
+                return new EndpointCommand($config, $endpoint['method'], $endpoint['path'], $endpoint['operationData'], $commandSuffix);
             });
 
-            $this->commands($config->getSignature());
+            $commandBindings[] = $bindingKey;
         }
+
+        // Register list command
+        $listBindingKey = "openapi.{$prefix}.list";
+        $this->app->singleton($listBindingKey, function () use ($config) {
+            return new ListCommand($config);
+        });
+        $commandBindings[] = $listBindingKey;
+
+        $this->commands($commandBindings);
+    }
+
+    /**
+     * Resolve all endpoints with their command suffixes, handling naming collisions.
+     *
+     * @return array<int, array{method: string, path: string, operationData: array, commandSuffix: string}>
+     */
+    protected function resolveEndpoints(CommandConfiguration $config, array $pathsWithMethods, array $spec, RefResolver $resolver): array
+    {
+        $endpoints = [];
+
+        foreach ($pathsWithMethods as $path => $methods) {
+            foreach ($methods as $method) {
+                $operationData = $spec['paths'][$path][$method] ?? [];
+                $operationData = $resolver->resolve($operationData);
+
+                if ($config->shouldUseOperationIds()) {
+                    $operationId = $operationData['operationId'] ?? null;
+                    $commandSuffix = $operationId
+                        ? CommandNameGenerator::fromOperationId($operationId)
+                        : CommandNameGenerator::fromPath($method, $path);
+                } else {
+                    $commandSuffix = CommandNameGenerator::fromPath($method, $path);
+                }
+
+                $endpoints[] = [
+                    'method' => $method,
+                    'path' => $path,
+                    'operationData' => $operationData,
+                    'commandSuffix' => $commandSuffix,
+                ];
+            }
+        }
+
+        // Detect and resolve naming collisions
+        $suffixCounts = [];
+        foreach ($endpoints as $endpoint) {
+            $suffixCounts[$endpoint['commandSuffix']] = ($suffixCounts[$endpoint['commandSuffix']] ?? 0) + 1;
+        }
+
+        foreach ($endpoints as &$endpoint) {
+            if ($suffixCounts[$endpoint['commandSuffix']] > 1) {
+                // Collision detected - use disambiguated name
+                $endpoint['commandSuffix'] = CommandNameGenerator::fromPathDisambiguated($endpoint['method'], $endpoint['path']);
+            }
+        }
+
+        return $endpoints;
     }
 }

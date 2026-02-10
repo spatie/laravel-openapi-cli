@@ -7,9 +7,9 @@ class OpenApiCli
     /** @var array<CommandConfiguration> */
     protected static array $registrations = [];
 
-    public static function register(string $specPath, string $signature): CommandConfiguration
+    public static function register(string $specPath, string $prefix): CommandConfiguration
     {
-        $config = new CommandConfiguration($specPath, $signature);
+        $config = new CommandConfiguration($specPath, $prefix);
 
         static::$registrations[] = $config;
 

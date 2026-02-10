@@ -55,7 +55,7 @@ it('shows network error message when connection fails', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->assertFailed()
         ->expectsOutputToContain('Network error: Could not connect to')
         ->expectsOutputToContain('Connection refused');
@@ -69,7 +69,7 @@ it('shows network error with underlying exception message', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->assertFailed()
         ->expectsOutputToContain('Network error: Could not connect to')
         ->expectsOutputToContain('cURL error 7: Failed to connect to host');
@@ -83,7 +83,7 @@ it('shows network error for POST requests with data', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api projects --field name=Test')
+    $this->artisan('test-api:post-projects', ['--field' => ['name=Test']])
         ->assertFailed()
         ->expectsOutputToContain('Network error: Could not connect to')
         ->expectsOutputToContain('Connection timed out');
@@ -97,6 +97,6 @@ it('exits with non-zero code on network errors', function () {
     OpenApiCli::register($this->specPath, 'test-api')
         ->baseUrl('https://api.example.com');
 
-    $this->artisan('test-api projects')
+    $this->artisan('test-api:get-projects')
         ->assertFailed();
 });
