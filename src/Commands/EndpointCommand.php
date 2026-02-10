@@ -184,8 +184,8 @@ class EndpointCommand extends Command
 
     private function buildSignature(string $commandName): void
     {
-        $prefix = $this->config->getPrefix();
-        $parts = ["{$prefix}:{$commandName}"];
+        $namespace = $this->config->getNamespace();
+        $parts = [$namespace !== '' ? "{$namespace}:{$commandName}" : $commandName];
 
         // Add path parameters as required options
         $parameters = $this->operationData['parameters'] ?? [];

@@ -30,7 +30,7 @@ class CommandConfiguration
 
     public function __construct(
         protected string $specPath,
-        protected string $prefix
+        protected string $namespace = ''
     ) {}
 
     public function getSpecPath(): string
@@ -38,9 +38,14 @@ class CommandConfiguration
         return $this->specPath;
     }
 
-    public function getPrefix(): string
+    public function getNamespace(): string
     {
-        return $this->prefix;
+        return $this->namespace;
+    }
+
+    public function hasNamespace(): bool
+    {
+        return $this->namespace !== '';
     }
 
     public function baseUrl(string $url): self

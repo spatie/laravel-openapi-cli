@@ -18,7 +18,8 @@ class ListCommand extends Command
     public function __construct(
         protected CommandConfiguration $config,
     ) {
-        $this->signature = $config->getPrefix().':list';
+        $namespace = $config->getNamespace();
+        $this->signature = $namespace !== '' ? "{$namespace}:list" : 'openapi:list';
 
         parent::__construct();
     }
@@ -77,7 +78,9 @@ class ListCommand extends Command
                 $commandSuffix = CommandNameGenerator::fromPathDisambiguated($ep['method'], $ep['path']);
             }
 
-            $commandName = $this->config->getPrefix().':'.$commandSuffix;
+            $commandName = $this->config->hasNamespace()
+                ? $this->config->getNamespace().':'.$commandSuffix
+                : $commandSuffix;
             $summary = $parser->getOperationSummary($ep['path'], $ep['method']);
             $description = $parser->getOperationDescription($ep['path'], $ep['method']);
 

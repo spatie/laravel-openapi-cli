@@ -39,7 +39,7 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
         $spec = $parser->getSpec();
         $resolver = new RefResolver($spec);
         $pathsWithMethods = $parser->getPathsWithMethods();
-        $prefix = $config->getPrefix();
+        $namespace = $config->getNamespace();
 
         $endpoints = $this->resolveEndpoints($config, $pathsWithMethods, $spec, $resolver);
 
@@ -47,7 +47,7 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
 
         foreach ($endpoints as $endpoint) {
             $commandSuffix = $endpoint['commandSuffix'];
-            $bindingKey = "openapi.{$prefix}.{$commandSuffix}";
+            $bindingKey = $namespace !== '' ? "openapi.{$namespace}.{$commandSuffix}" : "openapi.{$commandSuffix}";
 
             $this->app->singleton($bindingKey, function () use ($config, $endpoint, $commandSuffix) {
                 return new EndpointCommand($config, $endpoint['method'], $endpoint['path'], $endpoint['operationData'], $commandSuffix);
@@ -56,12 +56,14 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
             $commandBindings[] = $bindingKey;
         }
 
-        // Register list command
-        $listBindingKey = "openapi.{$prefix}.list";
-        $this->app->singleton($listBindingKey, function () use ($config) {
-            return new ListCommand($config);
-        });
-        $commandBindings[] = $listBindingKey;
+        // Register list command only when a namespace is set
+        if ($config->hasNamespace()) {
+            $listBindingKey = "openapi.{$namespace}.list";
+            $this->app->singleton($listBindingKey, function () use ($config) {
+                return new ListCommand($config);
+            });
+            $commandBindings[] = $listBindingKey;
+        }
 
         $this->commands($commandBindings);
     }

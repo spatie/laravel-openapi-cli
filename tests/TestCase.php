@@ -80,7 +80,7 @@ class TestCase extends Orchestra
             $spec = $parser->getSpec();
             $resolver = new RefResolver($spec);
             $pathsWithMethods = $parser->getPathsWithMethods();
-            $prefix = $config->getPrefix();
+            $namespace = $config->getNamespace();
 
             $endpoints = $this->resolveEndpoints($config, $pathsWithMethods, $spec, $resolver);
 
@@ -88,7 +88,7 @@ class TestCase extends Orchestra
 
             foreach ($endpoints as $endpoint) {
                 $commandSuffix = $endpoint['commandSuffix'];
-                $bindingKey = "openapi.{$prefix}.{$commandSuffix}";
+                $bindingKey = $namespace !== '' ? "openapi.{$namespace}.{$commandSuffix}" : "openapi.{$commandSuffix}";
 
                 $this->app->singleton($bindingKey, function () use ($config, $endpoint, $commandSuffix) {
                     return new EndpointCommand($config, $endpoint['method'], $endpoint['path'], $endpoint['operationData'], $commandSuffix);
@@ -97,12 +97,14 @@ class TestCase extends Orchestra
                 $commandBindings[] = $bindingKey;
             }
 
-            // Register list command
-            $listBindingKey = "openapi.{$prefix}.list";
-            $this->app->singleton($listBindingKey, function () use ($config) {
-                return new ListCommand($config);
-            });
-            $commandBindings[] = $listBindingKey;
+            // Register list command only when a namespace is set
+            if ($config->hasNamespace()) {
+                $listBindingKey = "openapi.{$namespace}.list";
+                $this->app->singleton($listBindingKey, function () use ($config) {
+                    return new ListCommand($config);
+                });
+                $commandBindings[] = $listBindingKey;
+            }
 
             // Register all commands with Artisan
             $kernel = $this->app->make(\Illuminate\Contracts\Console\Kernel::class);

@@ -9,21 +9,21 @@ beforeEach(function () {
     OpenApiCli::clearRegistrations();
 });
 
-it('registers a command with the specified prefix', function () {
+it('registers a command with the specified namespace', function () {
     $specPath = __DIR__.'/../../flare-api.yaml';
-    $prefix = 'test-flare';
+    $namespace = 'test-flare';
 
-    $config = OpenApiCli::register($specPath, $prefix);
+    $config = OpenApiCli::register($specPath, $namespace);
 
     expect($config->getSpecPath())->toBe($specPath)
-        ->and($config->getPrefix())->toBe($prefix);
+        ->and($config->getNamespace())->toBe($namespace);
 
     $registrations = OpenApiCli::getRegistrations();
     expect($registrations)->toHaveCount(1)
         ->and($registrations[0])->toBe($config);
 });
 
-it('can register multiple specs with different prefixes', function () {
+it('can register multiple specs with different namespaces', function () {
     $specPath1 = __DIR__.'/../../flare-api.yaml';
     $specPath2 = __DIR__.'/../../flare-api.yaml';
 

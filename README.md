@@ -9,19 +9,19 @@ Turn any OpenAPI spec into dedicated Laravel artisan commands. Each endpoint get
 
 ```bash
 # List all available commands for an API
-php artisan flare:list
+php artisan bookstore:list
 
 # GET request
-php artisan flare:get-projects
+php artisan bookstore:get-books
 
 # GET with path parameters
-php artisan flare:get-projects-errors --project-id=123
+php artisan bookstore:get-books-reviews --book-id=42
 
 # POST with JSON fields
-php artisan flare:post-projects --field name="My Project" --field team_id=1
+php artisan bookstore:post-books --field title="The Great Gatsby" --field author_id=1
 
 # Include response headers
-php artisan flare:get-projects --include
+php artisan bookstore:get-books --include
 ```
 
 ## Support us
@@ -59,18 +59,36 @@ use Spatie\OpenApiCli\Facades\OpenApiCli;
 
 public function boot()
 {
-    OpenApiCli::register(base_path('openapi/flare-api.yaml'), 'flare')
-        ->baseUrl('https://flareapp.io/api')
-        ->bearer(env('FLARE_TOKEN'));
+    OpenApiCli::register(base_path('openapi/bookstore-api.yaml'), 'bookstore')
+        ->baseUrl('https://api.example-bookstore.com')
+        ->bearer(env('BOOKSTORE_TOKEN'));
 }
 ```
 
-This reads the spec and registers one artisan command per endpoint. For a spec with `GET /projects`, `POST /projects`, and `GET /projects/{project_id}/errors`, you get:
+The second argument is the **namespace** - it groups all commands under a common prefix. For a spec with `GET /books`, `POST /books`, and `GET /books/{book_id}/reviews`, you get:
 
-- `flare:get-projects`
-- `flare:post-projects`
-- `flare:get-projects-errors`
-- `flare:list`
+- `bookstore:get-books`
+- `bookstore:post-books`
+- `bookstore:get-books-reviews`
+- `bookstore:list`
+
+### Direct registration (no namespace)
+
+If you omit the namespace, commands are registered directly without a prefix. This is useful for **Laravel Zero** CLI tools or any app where a single API is the primary interface:
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'))
+    ->baseUrl('https://api.example.com')
+    ->bearer(env('API_TOKEN'));
+```
+
+For the same spec, you get:
+
+- `get-books`
+- `post-books`
+- `get-books-reviews`
+
+Note: The `list` command is **not registered** when no namespace is set, since it would conflict with Laravel's built-in `list` command.
 
 ### Remote specs
 
@@ -100,40 +118,40 @@ The cache store and key prefix can be configured in `config/openapi-cli.php`.
 
 ### Command naming
 
-Commands are named `{prefix}:{method}-{path}` where path parameters are stripped:
+Commands are named `{namespace}:{method}-{path}` where path parameters are stripped. Without a namespace, the command is just `{method}-{path}`:
 
-| Method | Path | Command |
-|--------|------|---------|
-| GET | `/projects` | `flare:get-projects` |
-| POST | `/projects` | `flare:post-projects` |
-| GET | `/projects/{project_id}/errors` | `flare:get-projects-errors` |
-| DELETE | `/teams/{team_id}/users/{user_id}` | `flare:delete-teams-users` |
+| Method | Path | Command (namespaced) | Command (direct) |
+|--------|------|----------------------|-------------------|
+| GET | `/books` | `bookstore:get-books` | `get-books` |
+| POST | `/books` | `bookstore:post-books` | `post-books` |
+| GET | `/books/{book_id}/reviews` | `bookstore:get-books-reviews` | `get-books-reviews` |
+| DELETE | `/authors/{author_id}/books/{book_id}` | `bookstore:delete-authors-books` | `delete-authors-books` |
 
-When two paths would produce the same command name (e.g. `/projects` and `/projects/{id}` both yield `get-projects`), the trailing path parameter is appended to disambiguate:
+When two paths would produce the same command name (e.g. `/books` and `/books/{id}` both yield `get-books`), the trailing path parameter is appended to disambiguate:
 
-| Path | Command |
-|------|---------|
-| `/projects` | `flare:get-projects` |
-| `/projects/{id}` | `flare:get-projects-id` |
+| Path | Command (namespaced) | Command (direct) |
+|------|----------------------|-------------------|
+| `/books` | `bookstore:get-books` | `get-books` |
+| `/books/{id}` | `bookstore:get-books-id` | `get-books-id` |
 
 ### Path parameters
 
 Path parameters become required `--options`:
 
 ```bash
-php artisan flare:get-projects-errors --project-id=123
-php artisan flare:delete-teams-users --team-id=1 --user-id=2
+php artisan bookstore:get-books-reviews --book-id=42
+php artisan bookstore:delete-authors-books --author-id=1 --book-id=7
 ```
 
-Parameter names are converted to kebab-case (`project_id` becomes `--project-id`, `projectId` becomes `--project-id`).
+Parameter names are converted to kebab-case (`book_id` becomes `--book-id`, `bookId` becomes `--book-id`).
 
 ### Query parameters
 
 Query parameters defined in the spec become optional `--options`:
 
 ```bash
-# If the spec defines ?status and ?limit query params for GET /projects
-php artisan flare:get-projects --status=active --limit=10
+# If the spec defines ?genre and ?limit query params for GET /books
+php artisan bookstore:get-books --genre=fiction --limit=10
 ```
 
 Query parameters named `include` are automatically renamed to `--include-param` to avoid conflicting with the built-in `--include` flag.
@@ -145,7 +163,7 @@ Query parameters named `include` are automatically renamed to `--include-param` 
 Use `--field` to send key-value data:
 
 ```bash
-php artisan flare:post-projects --field name="My Project" --field team_id=1
+php artisan bookstore:post-books --field title="The Great Gatsby" --field author_id=1
 ```
 
 Fields are sent as JSON by default. If the spec declares `application/x-www-form-urlencoded` as the content type, fields are sent as form data instead.
@@ -155,7 +173,7 @@ Fields are sent as JSON by default. If the spec declares `application/x-www-form
 Send raw JSON with `--input`:
 
 ```bash
-php artisan flare:post-projects --input '{"name":"My Project","settings":{"color":"blue"}}'
+php artisan bookstore:post-books --input '{"title":"The Great Gatsby","metadata":{"genre":"fiction","year":1925}}'
 ```
 
 `--field` and `--input` cannot be used together.
@@ -165,38 +183,40 @@ php artisan flare:post-projects --input '{"name":"My Project","settings":{"color
 Upload files using the `@` prefix on field values:
 
 ```bash
-php artisan flare:post-upload --field file=@/path/to/document.pdf
-php artisan flare:post-upload --field file=@/path/to/logo.png --field alt="Company Logo"
+php artisan bookstore:post-books-cover --book-id=42 --field cover=@/path/to/cover.jpg
+php artisan bookstore:post-books-cover --book-id=42 --field cover=@/path/to/cover.jpg --field alt="Book Cover"
 ```
 
 When any field contains a file, the request is sent as `multipart/form-data`.
 
 ### Listing endpoints
 
-Every registered API gets a `{prefix}:list` command:
+Every namespaced API gets a `{namespace}:list` command:
 
 ```bash
-php artisan flare:list
+php artisan bookstore:list
 ```
 
 ```
-GET    flare:get-me                            Get the authenticated user.
-GET    flare:get-projects                      List all projects
-POST   flare:post-projects                     Create a new project
-GET    flare:get-projects-errors               List errors for a project
-DELETE flare:delete-projects-errors             Delete all errors for a project
+GET    bookstore:get-books                      List all books
+POST   bookstore:post-books                     Add a new book
+GET    bookstore:get-books-reviews              List reviews for a book
+DELETE bookstore:delete-books                   Delete a book
+POST   bookstore:post-books-cover               Upload a cover image
 ```
+
+Note: The `list` command is only registered when a namespace is provided. Direct registrations (without a namespace) do not get a `list` command.
 
 ### Custom banner
 
-Add a banner that displays above the endpoint list when running `{prefix}:list`. This is useful for branding, ASCII art logos, or contextual information.
+Add a banner that displays above the endpoint list when running `{namespace}:list`. This is useful for branding, ASCII art logos, or contextual information.
 
 #### String banner
 
 ```php
 OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
     ->baseUrl('https://api.example.com')
-    ->banner('🔥 Flare API v2.0');
+    ->banner('Bookstore API v1.0');
 ```
 
 #### Callable banner
@@ -257,10 +277,10 @@ The closure is called fresh on each request.
 #### Pretty-print (default)
 
 ```bash
-php artisan flare:get-projects
+php artisan bookstore:get-books
 # {
 #     "data": [
-#         { "id": 1, "name": "My Project" }
+#         { "id": 1, "title": "The Great Gatsby" }
 #     ]
 # }
 ```
@@ -268,14 +288,14 @@ php artisan flare:get-projects
 #### Minified output
 
 ```bash
-php artisan flare:get-projects --minify
-# {"data":[{"id":1,"name":"My Project"}]}
+php artisan bookstore:get-books --minify
+# {"data":[{"id":1,"title":"The Great Gatsby"}]}
 ```
 
 #### Response headers
 
 ```bash
-php artisan flare:get-projects --include
+php artisan bookstore:get-books --include
 # HTTP/1.1 200 OK
 # Content-Type: application/json
 # X-RateLimit-Remaining: 99
@@ -295,7 +315,7 @@ OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
     ->useOperationIds();
 ```
 
-With `operationId: listProjects` in the spec, the command becomes `api:list-projects` instead of `api:get-projects`. Endpoints without an `operationId` fall back to path-based naming.
+With `operationId: listBooks` in the spec, the command becomes `api:list-books` instead of `api:get-books`. Endpoints without an `operationId` fall back to path-based naming.
 
 ### Error handling
 
@@ -308,12 +328,12 @@ All error cases exit with a non-zero code for scripting.
 
 ### Multiple APIs
 
-Register as many specs as you need with different prefixes:
+Register as many specs as you need with different namespaces:
 
 ```php
-OpenApiCli::register(base_path('openapi/flare.yaml'), 'flare')
-    ->baseUrl('https://flareapp.io/api')
-    ->bearer(env('FLARE_TOKEN'));
+OpenApiCli::register(base_path('openapi/bookstore.yaml'), 'bookstore')
+    ->baseUrl('https://api.example-bookstore.com')
+    ->bearer(env('BOOKSTORE_TOKEN'));
 
 OpenApiCli::register(base_path('openapi/stripe.yaml'), 'stripe')
     ->baseUrl('https://api.stripe.com')
