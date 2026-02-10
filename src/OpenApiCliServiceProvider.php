@@ -35,7 +35,7 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
 
     protected function registerEndpointCommands(CommandConfiguration $config): void
     {
-        $parser = new OpenApiParser($config->getSpecPath());
+        $parser = new OpenApiParser(SpecResolver::resolve($config->getSpecPath(), $config));
         $spec = $parser->getSpec();
         $resolver = new RefResolver($spec);
         $pathsWithMethods = $parser->getPathsWithMethods();

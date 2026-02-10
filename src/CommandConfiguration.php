@@ -24,6 +24,10 @@ class CommandConfiguration
 
     protected bool $useOperationIds = false;
 
+    protected ?int $cacheTtl = null;
+
+    protected bool $noCache = false;
+
     public function __construct(
         protected string $specPath,
         protected string $prefix
@@ -133,5 +137,29 @@ class CommandConfiguration
     public function shouldUseOperationIds(): bool
     {
         return $this->useOperationIds;
+    }
+
+    public function cacheTtl(int $seconds): self
+    {
+        $this->cacheTtl = $seconds;
+
+        return $this;
+    }
+
+    public function getCacheTtl(): ?int
+    {
+        return $this->cacheTtl;
+    }
+
+    public function noCache(): self
+    {
+        $this->noCache = true;
+
+        return $this;
+    }
+
+    public function shouldSkipCache(): bool
+    {
+        return $this->noCache;
     }
 }

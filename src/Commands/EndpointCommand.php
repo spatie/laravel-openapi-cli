@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\CommandConfiguration;
 use Spatie\OpenApiCli\CommandNameGenerator;
 use Spatie\OpenApiCli\OpenApiParser;
+use Spatie\OpenApiCli\SpecResolver;
 
 class EndpointCommand extends Command
 {
@@ -226,7 +227,7 @@ class EndpointCommand extends Command
             return $configuredBaseUrl;
         }
 
-        $parser = new OpenApiParser($this->config->getSpecPath());
+        $parser = new OpenApiParser(SpecResolver::resolve($this->config->getSpecPath(), $this->config));
         $specBaseUrl = $parser->getServerUrl();
 
         if ($specBaseUrl !== null) {

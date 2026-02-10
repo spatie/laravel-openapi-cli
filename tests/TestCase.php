@@ -10,6 +10,7 @@ use Spatie\OpenApiCli\Commands\ListCommand;
 use Spatie\OpenApiCli\OpenApiCliServiceProvider;
 use Spatie\OpenApiCli\OpenApiParser;
 use Spatie\OpenApiCli\RefResolver;
+use Spatie\OpenApiCli\SpecResolver;
 
 class TestCase extends Orchestra
 {
@@ -75,7 +76,7 @@ class TestCase extends Orchestra
         $this->ensureConsoleKernelBound();
 
         foreach (\Spatie\OpenApiCli\Facades\OpenApiCli::getRegistrations() as $config) {
-            $parser = new OpenApiParser($config->getSpecPath());
+            $parser = new OpenApiParser(SpecResolver::resolve($config->getSpecPath(), $config));
             $spec = $parser->getSpec();
             $resolver = new RefResolver($spec);
             $pathsWithMethods = $parser->getPathsWithMethods();

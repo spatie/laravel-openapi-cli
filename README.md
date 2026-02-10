@@ -52,7 +52,7 @@ php artisan vendor:publish --tag="laravel-openapi-cli-config"
 
 ### Registering an API
 
-Register your OpenAPI spec in a service provider (typically `AppServiceProvider`):
+Register your OpenAPI spec in a service provider (typically `AppServiceProvider`). You can use a local file path or a remote URL:
 
 ```php
 use Spatie\OpenApiCli\Facades\OpenApiCli;
@@ -71,6 +71,32 @@ This reads the spec and registers one artisan command per endpoint. For a spec w
 - `flare:post-projects`
 - `flare:get-projects-errors`
 - `flare:list`
+
+### Remote specs
+
+You can register a spec directly from a URL. The spec is fetched via HTTP and cached using Laravel's cache:
+
+```php
+OpenApiCli::register('https://api.example.com/openapi.yaml', 'example')
+    ->baseUrl('https://api.example.com')
+    ->bearer(env('EXAMPLE_TOKEN'));
+```
+
+By default, remote specs are cached for 1 minute. You can customize the TTL per registration:
+
+```php
+OpenApiCli::register('https://api.example.com/openapi.yaml', 'example')
+    ->cacheTtl(600); // 10 minutes
+```
+
+To disable caching entirely (always re-fetch):
+
+```php
+OpenApiCli::register('https://api.example.com/openapi.yaml', 'example')
+    ->noCache();
+```
+
+The cache store and key prefix can be configured in `config/openapi-cli.php`.
 
 ### Command naming
 

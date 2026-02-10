@@ -7,6 +7,7 @@ use Spatie\OpenApiCli\CommandConfiguration;
 use Spatie\OpenApiCli\CommandNameGenerator;
 use Spatie\OpenApiCli\OpenApiParser;
 use Spatie\OpenApiCli\RefResolver;
+use Spatie\OpenApiCli\SpecResolver;
 
 class ListCommand extends Command
 {
@@ -34,7 +35,7 @@ class ListCommand extends Command
             $this->line('');
         }
 
-        $parser = new OpenApiParser($this->config->getSpecPath());
+        $parser = new OpenApiParser(SpecResolver::resolve($this->config->getSpecPath(), $this->config));
         $pathsWithMethods = $parser->getPathsWithMethods();
         $spec = $parser->getSpec();
         $resolver = new RefResolver($spec);

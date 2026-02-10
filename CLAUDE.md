@@ -181,3 +181,4 @@ Before committing any code, run ALL of these:
 - Don't remove or restructure existing skeleton files
 - All code must pass all quality checks before committing
 - Aim for 90%+ test coverage
+- When adding or changing user-facing features, always update README.md to reflect the changes
