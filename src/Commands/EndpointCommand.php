@@ -9,6 +9,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\CommandConfiguration;
 use Spatie\OpenApiCli\CommandNameGenerator;
+use Spatie\OpenApiCli\HumanReadableFormatter;
 use Spatie\OpenApiCli\OpenApiParser;
 use Spatie\OpenApiCli\SpecResolver;
 
@@ -215,6 +216,7 @@ class EndpointCommand extends Command
         $parts[] = '{--input= : Raw JSON input}';
         $parts[] = '{--minify : Minify JSON output}';
         $parts[] = '{--include : Include response headers in output}';
+        $parts[] = '{--human : Display response in human-readable format}';
 
         $this->signature = implode("\n            ", $parts);
     }
@@ -329,6 +331,16 @@ class EndpointCommand extends Command
         $decoded = json_decode($body, true);
 
         if (json_last_error() === JSON_ERROR_NONE && $decoded !== null) {
+            if ($this->option('human')) {
+                $formatter = new HumanReadableFormatter;
+
+                foreach (explode("\n", $formatter->format($decoded)) as $line) {
+                    $this->line($line);
+                }
+
+                return;
+            }
+
             if ($this->option('minify')) {
                 $formatted = json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             } else {

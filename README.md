@@ -285,6 +285,23 @@ php artisan bookstore:get-books
 # }
 ```
 
+#### Human-readable output
+
+```bash
+php artisan bookstore:get-books --human
+# # Data
+#
+# | ID | Title             |
+# |----|-------------------|
+# | 1  | The Great Gatsby  |
+#
+# # Meta
+#
+# Total: 1
+```
+
+The `--human` flag converts JSON responses into readable markdown-style output: tables for arrays of objects, key-value lines for simple objects, and section headings for wrapper patterns like `{"data": [...], "meta": {...}}`. Takes precedence over `--minify` and works with `--include`.
+
 #### Minified output
 
 ```bash
@@ -358,6 +375,7 @@ Every endpoint command supports these universal options:
 | `--input=JSON` | Send raw JSON body |
 | `--minify` | Minify JSON output |
 | `--include` | Include response headers in output |
+| `--human` | Display response in human-readable format |
 
 Path and query parameter options are generated from the spec and shown in each command's `--help` output.
 
