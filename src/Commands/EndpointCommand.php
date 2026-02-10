@@ -11,6 +11,7 @@ use Spatie\OpenApiCli\CommandConfiguration;
 use Spatie\OpenApiCli\CommandNameGenerator;
 use Spatie\OpenApiCli\HumanReadableFormatter;
 use Spatie\OpenApiCli\OpenApiParser;
+use Spatie\OpenApiCli\OutputHighlighter;
 use Spatie\OpenApiCli\SpecResolver;
 
 class EndpointCommand extends Command
@@ -307,6 +308,10 @@ class EndpointCommand extends Command
 
     protected function outputResponse(Response $response): void
     {
+        $highlighter = new OutputHighlighter(
+            enabled: $this->output->isDecorated(),
+        );
+
         if ($this->option('include')) {
             $statusCode = $response->status();
             $reasonPhrase = $response->reason();
@@ -333,8 +338,9 @@ class EndpointCommand extends Command
         if (json_last_error() === JSON_ERROR_NONE && $decoded !== null) {
             if ($this->option('human')) {
                 $formatter = new HumanReadableFormatter;
+                $formatted = $highlighter->highlightHumanReadable($formatter->format($decoded));
 
-                foreach (explode("\n", $formatter->format($decoded)) as $line) {
+                foreach (explode("\n", $formatted) as $line) {
                     $this->line($line);
                 }
 
@@ -347,7 +353,7 @@ class EndpointCommand extends Command
                 $formatted = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             }
 
-            $this->line($formatted);
+            $this->line($highlighter->highlightJson($formatted));
         } else {
             $contentType = $response->header('Content-Type') ?: 'unknown';
             $this->line("Response is not JSON (content-type: {$contentType})");

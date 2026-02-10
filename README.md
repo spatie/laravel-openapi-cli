@@ -322,6 +322,19 @@ php artisan bookstore:get-books --include
 # }
 ```
 
+#### Syntax highlighting
+
+JSON and human-readable output are syntax-highlighted by default when running in a terminal. JSON output gets keyword/value coloring via [tempest/highlight](https://github.com/tempestphp/highlight), and human-readable output gets colored headings, keys, and table formatting.
+
+To disable highlighting (e.g. when piping output), use the built-in `--no-ansi` flag:
+
+```bash
+php artisan bookstore:get-books --no-ansi
+php artisan bookstore:get-books --human --no-ansi
+```
+
+Highlighting is automatically disabled when output is not a TTY (e.g. piped to a file or another command).
+
 ### Operation ID mode
 
 By default, commands are named from the URL path. If your spec includes `operationId` fields, you can use those instead:
