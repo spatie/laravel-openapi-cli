@@ -356,6 +356,28 @@ With `operationId: listBooks` in the spec, the command becomes `api:list-books` 
 
 All error cases exit with a non-zero code for scripting.
 
+### Custom error handling
+
+Register an `onError` callback to handle HTTP errors in a way that's specific to your API:
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
+    ->baseUrl('https://api.example.com')
+    ->bearer(env('API_TOKEN'))
+    ->onError(function (Response $response, Command $command) {
+        return match ($response->status()) {
+            403 => $command->error('Your API token lacks permission for this endpoint.'),
+            429 => $command->warn('Rate limited. Try again in ' . $response->header('Retry-After') . 's.'),
+            500 => $command->error('Server error — try again later.'),
+            default => false, // fall through to default handling
+        };
+    });
+```
+
+The callback receives the `Illuminate\Http\Client\Response` and the `Illuminate\Console\Command` instance, giving you access to all Artisan output methods (`line()`, `info()`, `warn()`, `error()`, `table()`, `newLine()`, etc.).
+
+Return a truthy value to indicate "handled" — this suppresses the default "HTTP {code} Error" output. Return `false` or `null` to fall through to default error handling. The command always exits with a non-zero code regardless of whether the callback handles the error.
+
 ### Multiple APIs
 
 Register as many specs as you need with different namespaces:

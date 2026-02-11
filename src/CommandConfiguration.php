@@ -19,6 +19,9 @@ class CommandConfiguration
     /** @var callable|null */
     protected $authCallable = null;
 
+    /** @var callable|null */
+    protected $onErrorCallable = null;
+
     /** @var string|callable|null */
     protected $banner = null;
 
@@ -118,6 +121,18 @@ class CommandConfiguration
     public function getAuthCallable(): ?callable
     {
         return $this->authCallable;
+    }
+
+    public function onError(callable $callable): self
+    {
+        $this->onErrorCallable = $callable;
+
+        return $this;
+    }
+
+    public function getOnErrorCallable(): ?callable
+    {
+        return $this->onErrorCallable;
     }
 
     public function banner(string|callable $banner): self

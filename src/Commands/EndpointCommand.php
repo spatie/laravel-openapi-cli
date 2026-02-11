@@ -172,6 +172,12 @@ class EndpointCommand extends Command
         $statusCode = $response->status();
 
         if ($statusCode >= 400) {
+            $onError = $this->config->getOnErrorCallable();
+
+            if ($onError && $onError($response, $this)) {
+                return self::FAILURE;
+            }
+
             $this->error("HTTP {$statusCode} Error");
             $this->line('');
             $this->outputResponse($response);
