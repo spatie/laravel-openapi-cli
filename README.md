@@ -7,21 +7,73 @@
 
 Turn any OpenAPI spec into dedicated Laravel artisan commands. Each endpoint gets its own command with typed options for path parameters, query parameters, and request bodies.
 
+```php
+OpenApiCli::register('https://api.bookstore.io/openapi.yaml', 'bookstore')
+    ->baseUrl('https://api.bookstore.io')
+    ->bearer(env('BOOKSTORE_TOKEN'))
+    ->banner('Bookstore API v2')
+    ->cacheTtl(600)
+    ->followRedirects()
+    ->yamlOutput()
+    ->showHtmlBody()
+    ->useOperationIds()
+    ->onError(function (Response $response, Command $command) {
+        return match ($response->status()) {
+            429 => $command->warn('Rate limited. Retry after '.$response->header('Retry-After').'s.'),
+            default => false,
+        };
+    });
+```
+
+List all endpoints:
+
 ```bash
-# List all available commands for an API
-php artisan bookstore:list
+$ php artisan bookstore:list
+```
+```
+Bookstore API v2
 
-# GET request
-php artisan bookstore:get-books
+GET    bookstore:get-books             List all books
+POST   bookstore:post-books            Add a new book
+GET    bookstore:get-books-reviews     List reviews for a book
+DELETE bookstore:delete-books          Delete a book
+```
 
-# GET with path parameters
-php artisan bookstore:get-books-reviews --book-id=42
+Human-readable output (default):
 
-# POST with JSON fields
-php artisan bookstore:post-books --field title="The Great Gatsby" --field author_id=1
+```bash
+$ php artisan bookstore:get-books --limit=2
+```
+```
+# Data
 
-# Include response headers
-php artisan bookstore:get-books --headers
+| id | title                    | author          |
+|----|--------------------------|-----------------|
+| 1  | The Great Gatsby         | F. Fitzgerald   |
+| 2  | To Kill a Mockingbird    | Harper Lee      |
+
+# Meta
+
+total: 2
+```
+
+YAML output:
+
+```bash
+$ php artisan bookstore:get-books --limit=2 --yaml
+```
+```yaml
+data:
+  -
+    id: 1
+    title: 'The Great Gatsby'
+    author: 'F. Fitzgerald'
+  -
+    id: 2
+    title: 'To Kill a Mockingbird'
+    author: 'Harper Lee'
+meta:
+  total: 2
 ```
 
 ## Support us
@@ -477,6 +529,28 @@ The base URL is resolved in this order:
 1. The URL set via `->baseUrl()` on the registration
 2. The first entry in the spec's `servers` array
 3. If neither is available, the command throws an error
+
+### Debugging
+
+Pass `-vvv` to any command to see the full request before it's sent:
+
+```bash
+php artisan bookstore:get-books -vvv
+```
+
+```
+  Request
+  -------
+  GET https://api.example-bookstore.com/books
+
+  Request Headers
+  ---------------
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer sk-abc...
+```
+
+This shows the HTTP method, resolved URL, request headers (including authentication), and request body when present.
 
 ## Command reference
 

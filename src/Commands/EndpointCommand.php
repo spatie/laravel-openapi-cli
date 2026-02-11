@@ -131,6 +131,10 @@ class EndpointCommand extends Command
         $http = $this->applyAuthentication($http);
         $method = strtoupper($this->method);
 
+        if ($this->output->isDebug()) {
+            $this->outputDebugRequest($method, $url, $acceptTypes, $http, $jsonData, $fields, $files);
+        }
+
         try {
             if ($jsonData !== null) {
                 $response = $http->send($method, $url, [
@@ -283,6 +287,101 @@ class EndpointCommand extends Command
         }
 
         return $http;
+    }
+
+    /**
+     * @param  array<string, string>  $fields
+     * @param  array<string, string>  $files
+     */
+    private function outputDebugRequest(
+        string $method,
+        string $url,
+        ?string $acceptTypes,
+        PendingRequest $http,
+        ?array $jsonData,
+        array $fields,
+        array $files,
+    ): void {
+        $this->newLine();
+        $this->comment('  Request');
+        $this->comment('  -------');
+        $this->line("  {$method} {$url}");
+
+        $headers = $this->collectDebugHeaders($acceptTypes, $http, $files);
+
+        if ($headers !== []) {
+            $this->newLine();
+            $this->comment('  Request Headers');
+            $this->comment('  ---------------');
+            foreach ($headers as $name => $value) {
+                $this->line("  {$name}: {$value}");
+            }
+        }
+
+        if ($jsonData !== null) {
+            $this->newLine();
+            $this->comment('  Request Body');
+            $this->comment('  ------------');
+            $this->line('  '.json_encode($jsonData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        } elseif (! empty($files)) {
+            $this->newLine();
+            $this->comment('  Request Body');
+            $this->comment('  ------------');
+            foreach ($files as $fieldName => $filePath) {
+                $size = file_exists($filePath) ? filesize($filePath) : 0;
+                $this->line("  {$fieldName}: ".basename($filePath)." ({$size} bytes)");
+            }
+            foreach ($fields as $fieldName => $value) {
+                $this->line("  {$fieldName}: {$value}");
+            }
+        } elseif (! empty($fields)) {
+            $contentTypes = $this->operationData['requestBody']['content'] ?? [];
+            $isFormEncoded = ! empty($contentTypes) && ! isset($contentTypes['application/json']);
+
+            $this->newLine();
+            $this->comment('  Request Body');
+            $this->comment('  ------------');
+            if ($isFormEncoded) {
+                foreach ($fields as $fieldName => $value) {
+                    $this->line("  {$fieldName}: {$value}");
+                }
+            } else {
+                $this->line('  '.json_encode($fields, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+            }
+        }
+
+        $this->newLine();
+    }
+
+    /**
+     * @param  array<string, string>  $files
+     * @return array<string, string>
+     */
+    private function collectDebugHeaders(?string $acceptTypes, PendingRequest $http, array $files): array
+    {
+        $headers = [];
+
+        if ($acceptTypes !== null) {
+            $headers['Accept'] = $acceptTypes;
+        }
+
+        if (! empty($files)) {
+            $headers['Content-Type'] = 'multipart/form-data';
+        } else {
+            $headers['Content-Type'] = 'application/json';
+        }
+
+        if ($this->config->getBearerToken() !== null) {
+            $headers['Authorization'] = 'Bearer '.$this->config->getBearerToken();
+        } elseif ($this->config->getApiKeyHeader() !== null && $this->config->getApiKeyValue() !== null) {
+            $headers[$this->config->getApiKeyHeader()] = $this->config->getApiKeyValue();
+        } elseif ($this->config->getBasicUsername() !== null && $this->config->getBasicPassword() !== null) {
+            $headers['Authorization'] = 'Basic '.base64_encode($this->config->getBasicUsername().':'.$this->config->getBasicPassword());
+        } elseif ($this->config->getAuthCallable() !== null) {
+            $headers['Authorization'] = 'Bearer (dynamic)';
+        }
+
+        return $headers;
     }
 
     private function getAcceptContentTypes(): ?string
