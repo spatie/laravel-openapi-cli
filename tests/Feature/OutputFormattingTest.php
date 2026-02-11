@@ -32,6 +32,18 @@ paths:
       responses:
         '200':
           description: Success
+  /projects/{project_id}:
+    delete:
+      summary: Delete a project
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Successful response
 YAML;
 
     $this->specFile = sys_get_temp_dir().'/test-spec-'.uniqid().'.yaml';
@@ -523,7 +535,36 @@ it('combines --headers and --json flags correctly', function () {
 
 // 204 No Content tests
 
-it('handles 204 No Content responses gracefully and exits successfully', function () {
+it('shows spec response description for 204 No Content', function () {
+    Http::fake([
+        'https://api.example.com/projects/*' => Http::response('', 204),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:delete-projects', ['--project-id' => 1])
+        ->expectsOutput('Successful response (204)')
+        ->assertSuccessful();
+
+    Http::assertSent(function ($request) {
+        return $request->url() === 'https://api.example.com/projects/1';
+    });
+});
+
+it('shows 204 status in headers when --headers flag is provided', function () {
+    Http::fake([
+        'https://api.example.com/projects/*' => Http::response('', 204),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:delete-projects', ['--headers' => true, '--project-id' => 1])
+        ->expectsOutputToContain('HTTP/1.1 204 No Content')
+        ->expectsOutputToContain('Successful response (204)')
+        ->assertSuccessful();
+});
+
+it('falls back to generic message for 204 without spec description', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('', 204),
     ]);
@@ -532,23 +573,6 @@ it('handles 204 No Content responses gracefully and exits successfully', functio
 
     $this->artisan('test-api:get-projects')
         ->expectsOutput('No content (204)')
-        ->assertSuccessful();
-
-    Http::assertSent(function ($request) {
-        return $request->url() === 'https://api.example.com/projects';
-    });
-});
-
-it('shows 204 status in headers when --headers flag is provided', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('', 204),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects', ['--headers' => true])
-        ->expectsOutputToContain('HTTP/1.1 204 No Content')
-        ->expectsOutputToContain('No content (204)')
         ->assertSuccessful();
 });
 

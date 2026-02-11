@@ -459,7 +459,8 @@ class EndpointCommand extends Command
         }
 
         if ($response->status() === 204) {
-            $this->line('No content (204)');
+            $description = $this->operationData['responses']['204']['description'] ?? null;
+            $this->line($description ? "$description (204)" : 'No content (204)');
 
             return;
         }
