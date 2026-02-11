@@ -7,6 +7,8 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use JsonException;
+use RuntimeException;
 use Spatie\OpenApiCli\CommandConfiguration;
 use Spatie\OpenApiCli\CommandNameGenerator;
 use Spatie\OpenApiCli\HumanReadableFormatter;
@@ -36,40 +38,61 @@ class EndpointCommand extends Command
         string $commandName,
     ) {
         $this->buildSignature($commandName);
-        $this->description = $this->operationData['summary'] ?? 'Execute '.$this->method.' '.$this->path;
+
+        $this->description = $this->operationData['summary'] ?? "Execute {$this->method} {$this->path}";
 
         parent::__construct();
     }
 
     public function handle(): int
     {
-        // Validate required path parameter options
+        if (! $this->validatePathParameters()) {
+            return self::FAILURE;
+        }
+
+        $url = $this->buildRequestUrl();
+
+        $input = $this->parseRequestInput();
+        if ($input === null) {
+            return self::FAILURE;
+        }
+
+        $response = $this->sendRequest($url, $input['fields'], $input['files'], $input['jsonData']);
+        if ($response === null) {
+            return self::FAILURE;
+        }
+
+        return $this->processResponse($response);
+    }
+
+    protected function validatePathParameters(): bool
+    {
         foreach ($this->pathParamOptionMap as $paramName => $optionName) {
             if (! $this->option($optionName)) {
                 $this->error("The --{$optionName} option is required for path parameter '{$paramName}'.");
 
-                return self::FAILURE;
+                return false;
             }
         }
 
-        // Build the URL with path parameter substitution
+        return true;
+    }
+
+    protected function buildRequestUrl(): string
+    {
         $baseUrl = $this->resolveBaseUrl();
         $urlPath = $this->path;
 
         foreach ($this->pathParamOptionMap as $paramName => $optionName) {
-            $urlPath = str_replace('{'.$paramName.'}', $this->option($optionName), $urlPath);
+            $urlPath = str_replace("{{$paramName}}", $this->option($optionName), $urlPath);
         }
 
         $url = rtrim($baseUrl, '/').$urlPath;
 
-        // Append query parameters from individual options
-        $queryParams = [];
-        foreach ($this->queryParamOptionMap as $paramName => $optionName) {
-            $value = $this->option($optionName);
-            if ($value !== null) {
-                $queryParams[$paramName] = $value;
-            }
-        }
+        $queryParams = collect($this->queryParamOptionMap)
+            ->mapWithKeys(fn (string $optionName, string $paramName) => [$paramName => $this->option($optionName)])
+            ->filter(fn ($value) => $value !== null)
+            ->all();
 
         if (! empty($queryParams)) {
             $encodedParams = [];
@@ -77,47 +100,68 @@ class EndpointCommand extends Command
             $url .= '?'.implode('&', $encodedParams);
         }
 
-        // Parse form fields and file uploads
+        return $url;
+    }
+
+    /**
+     * @return ?array{
+     *     fields: array<string, string>,
+     *     files: array<string, string>,
+     *     jsonData: ?array<string, mixed>,
+     * }
+     */
+    protected function parseRequestInput(): ?array
+    {
         $parseResult = $this->parseFields($this->option('field'));
         $fields = $parseResult['fields'];
         $files = $parseResult['files'];
 
-        // Validate file paths
         foreach ($files as $fieldName => $filePath) {
             if (! file_exists($filePath)) {
                 $this->error("File not found: {$filePath}");
 
-                return self::FAILURE;
+                return null;
             }
 
             if (! is_readable($filePath)) {
                 $this->error("File is not readable: {$filePath}");
 
-                return self::FAILURE;
+                return null;
             }
         }
 
-        // Parse JSON input
-        $jsonInput = $this->option('input');
         $jsonData = null;
+        $jsonInput = $this->option('input');
         if ($jsonInput) {
             try {
                 $jsonData = json_decode($jsonInput, true, 512, JSON_THROW_ON_ERROR);
-            } catch (\JsonException $e) {
-                $this->error('Invalid JSON input: '.$e->getMessage());
+            } catch (JsonException $exception) {
+                $this->error("Invalid JSON input: {$exception->getMessage()}");
 
-                return self::FAILURE;
+                return null;
             }
         }
 
-        // Conflict check: --field and --input
         if ((! empty($fields) || ! empty($files)) && $jsonData !== null) {
             $this->error('Cannot use both --field and --input options. Use --input for JSON data or --field for form fields, not both.');
 
-            return self::FAILURE;
+            return null;
         }
 
-        // Execute HTTP request
+        return [
+            'fields' => $fields,
+            'files' => $files,
+            'jsonData' => $jsonData,
+        ];
+    }
+
+    /**
+     * @param  array<string, string>  $fields
+     * @param  array<string, string>  $files
+     * @param  ?array<string, mixed>  $jsonData
+     */
+    protected function sendRequest(string $url, array $fields, array $files, ?array $jsonData): ?Response
+    {
         $redirects = $this->config->shouldFollowRedirects();
         $http = ! empty($files)
             ? Http::withOptions(['allow_redirects' => $redirects])
@@ -132,68 +176,81 @@ class EndpointCommand extends Command
         $method = strtoupper($this->method);
 
         if ($this->output->isDebug()) {
-            $this->outputDebugRequest($method, $url, $acceptTypes, $http, $jsonData, $fields, $files);
+            $this->outputDebugRequest($method, $url, $acceptTypes, $jsonData, $fields, $files);
         }
 
         try {
             if ($jsonData !== null) {
-                $response = $http->send($method, $url, [
-                    'json' => $jsonData,
-                ]);
-            } elseif (! empty($files)) {
-                $multipart = [];
-
-                foreach ($files as $fieldName => $filePath) {
-                    $multipart[] = [
-                        'name' => $fieldName,
-                        'contents' => file_get_contents($filePath),
-                        'filename' => basename($filePath),
-                    ];
-                }
-
-                foreach ($fields as $fieldName => $value) {
-                    $multipart[] = [
-                        'name' => $fieldName,
-                        'contents' => $value,
-                    ];
-                }
-
-                $response = $http->send($method, $url, [
-                    'multipart' => $multipart,
-                ]);
-            } elseif (! empty($fields)) {
-                $contentTypes = $this->operationData['requestBody']['content'] ?? [];
-
-                if (empty($contentTypes) || isset($contentTypes['application/json'])) {
-                    $response = $http->send($method, $url, [
-                        'json' => $fields,
-                    ]);
-                } else {
-                    $response = $http->send($method, $url, [
-                        'form_params' => $fields,
-                    ]);
-                }
-            } else {
-                $response = $http->send($method, $url);
+                return $http->send($method, $url, ['json' => $jsonData]);
             }
-        } catch (ConnectionException $e) {
-            $this->error("Network error: Could not connect to {$url}");
-            $this->line($e->getMessage());
 
-            return self::FAILURE;
+            if (! empty($files)) {
+                return $this->sendMultipartRequest($http, $method, $url, $fields, $files);
+            }
+
+            if (! empty($fields)) {
+                return $this->sendFieldsRequest($http, $method, $url, $fields);
+            }
+
+            return $http->send($method, $url);
+        } catch (ConnectionException $exception) {
+            $this->error("Network error: Could not connect to {$url}");
+            $this->line($exception->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * @param  array<string, string>  $fields
+     * @param  array<string, string>  $files
+     */
+    protected function sendMultipartRequest(PendingRequest $http, string $method, string $url, array $fields, array $files): Response
+    {
+        $multipart = [];
+
+        foreach ($files as $fieldName => $filePath) {
+            $multipart[] = [
+                'name' => $fieldName,
+                'contents' => file_get_contents($filePath),
+                'filename' => basename($filePath),
+            ];
         }
 
-        // Handle HTTP errors
-        $statusCode = $response->status();
+        foreach ($fields as $fieldName => $value) {
+            $multipart[] = [
+                'name' => $fieldName,
+                'contents' => $value,
+            ];
+        }
 
-        if ($statusCode >= 400) {
+        return $http->send($method, $url, ['multipart' => $multipart]);
+    }
+
+    /**
+     * @param  array<string, string>  $fields
+     */
+    protected function sendFieldsRequest(PendingRequest $http, string $method, string $url, array $fields): Response
+    {
+        $contentTypes = $this->operationData['requestBody']['content'] ?? [];
+
+        if (empty($contentTypes) || isset($contentTypes['application/json'])) {
+            return $http->send($method, $url, ['json' => $fields]);
+        }
+
+        return $http->send($method, $url, ['form_params' => $fields]);
+    }
+
+    protected function processResponse(Response $response): int
+    {
+        if ($response->status() >= 400) {
             $onError = $this->config->getOnErrorCallable();
 
             if ($onError && $onError($response, $this)) {
                 return self::FAILURE;
             }
 
-            $this->error("HTTP {$statusCode} Error");
+            $this->error("HTTP {$response->status()} Error");
             $this->line('');
             $this->outputResponse($response);
 
@@ -210,37 +267,37 @@ class EndpointCommand extends Command
         $namespace = $this->config->getNamespace();
         $parts = [$namespace !== '' ? "{$namespace}:{$commandName}" : $commandName];
 
-        // Add path parameters as required options
-        $parameters = $this->operationData['parameters'] ?? [];
-        foreach ($parameters as $param) {
-            if (($param['in'] ?? '') === 'path') {
+        $parameters = collect($this->operationData['parameters'] ?? []);
+
+        $parameters
+            ->filter(fn (array $param) => ($param['in'] ?? '') === 'path')
+            ->each(function (array $param) use (&$parts) {
                 $paramName = $param['name'] ?? '';
                 $optionName = CommandNameGenerator::parameterToOptionName($paramName);
                 $this->pathParamOptionMap[$paramName] = $optionName;
                 $description = $param['description'] ?? "Path parameter: {$paramName}";
                 $parts[] = "{--{$optionName}= : {$description}}";
-            }
-        }
+            });
 
-        // Add query parameters as optional options
-        foreach ($parameters as $param) {
-            if (($param['in'] ?? '') === 'query') {
+        $parameters
+            ->filter(fn (array $param) => ($param['in'] ?? '') === 'query')
+            ->each(function (array $param) use (&$parts) {
                 $paramName = $param['name'] ?? '';
                 $optionName = CommandNameGenerator::queryParamToOptionName($paramName);
                 $this->queryParamOptionMap[$paramName] = $optionName;
                 $description = $param['description'] ?? "Query parameter: {$paramName}";
                 $parts[] = "{--{$optionName}= : {$description}}";
-            }
-        }
+            });
 
-        // Universal options
-        $parts[] = '{--field=* : Form field in key=value format (can be used multiple times)}';
-        $parts[] = '{--input= : Raw JSON input}';
-        $parts[] = '{--json : Output raw JSON instead of human-readable format}';
-        $parts[] = '{--yaml : Output as YAML}';
-        $parts[] = '{--minify : Minify JSON output (implies --json)}';
-        $parts[] = '{--H|headers : Include response headers in output}';
-        $parts[] = '{--output-html : Show the full response body when content-type is text/html}';
+        $parts = array_merge($parts, [
+            '{--field=* : Form field in key=value format (can be used multiple times)}',
+            '{--input= : Raw JSON input}',
+            '{--json : Output raw JSON instead of human-readable format}',
+            '{--yaml : Output as YAML}',
+            '{--minify : Minify JSON output (implies --json)}',
+            '{--H|headers : Include response headers in output}',
+            '{--output-html : Show the full response body when content-type is text/html}',
+        ]);
 
         $this->signature = implode("\n            ", $parts);
     }
@@ -260,7 +317,7 @@ class EndpointCommand extends Command
             return $specBaseUrl;
         }
 
-        throw new \RuntimeException(
+        throw new RuntimeException(
             'No base URL available. Either configure one using ->baseUrl() or ensure your OpenAPI spec has a servers array.'
         );
     }
@@ -281,9 +338,8 @@ class EndpointCommand extends Command
 
         if ($this->config->getAuthCallable() !== null) {
             $callable = $this->config->getAuthCallable();
-            $token = $callable();
 
-            return $http->withToken($token);
+            return $http->withToken($callable());
         }
 
         return $http;
@@ -297,7 +353,6 @@ class EndpointCommand extends Command
         string $method,
         string $url,
         ?string $acceptTypes,
-        PendingRequest $http,
         ?array $jsonData,
         array $fields,
         array $files,
@@ -307,57 +362,82 @@ class EndpointCommand extends Command
         $this->comment('  -------');
         $this->line("  {$method} {$url}");
 
-        $headers = $this->collectDebugHeaders($acceptTypes, $http, $files);
+        $headers = $this->collectDebugHeaders($acceptTypes, $files);
 
         if ($headers !== []) {
             $this->newLine();
             $this->comment('  Request Headers');
             $this->comment('  ---------------');
-            foreach ($headers as $name => $value) {
-                $this->line("  {$name}: {$value}");
-            }
+            collect($headers)->each(fn (string $value, string $name) => $this->line("  {$name}: {$value}"));
         }
 
-        if ($jsonData !== null) {
-            $this->newLine();
-            $this->comment('  Request Body');
-            $this->comment('  ------------');
-            $this->line('  '.json_encode($jsonData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-        } elseif (! empty($files)) {
-            $this->newLine();
-            $this->comment('  Request Body');
-            $this->comment('  ------------');
-            foreach ($files as $fieldName => $filePath) {
-                $size = file_exists($filePath) ? filesize($filePath) : 0;
-                $this->line("  {$fieldName}: ".basename($filePath)." ({$size} bytes)");
-            }
-            foreach ($fields as $fieldName => $value) {
-                $this->line("  {$fieldName}: {$value}");
-            }
-        } elseif (! empty($fields)) {
-            $contentTypes = $this->operationData['requestBody']['content'] ?? [];
-            $isFormEncoded = ! empty($contentTypes) && ! isset($contentTypes['application/json']);
-
-            $this->newLine();
-            $this->comment('  Request Body');
-            $this->comment('  ------------');
-            if ($isFormEncoded) {
-                foreach ($fields as $fieldName => $value) {
-                    $this->line("  {$fieldName}: {$value}");
-                }
-            } else {
-                $this->line('  '.json_encode($fields, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-            }
-        }
+        $this->outputDebugRequestBody($jsonData, $fields, $files);
 
         $this->newLine();
+    }
+
+    /**
+     * @param  array<string, string>  $fields
+     * @param  array<string, string>  $files
+     */
+    private function outputDebugRequestBody(?array $jsonData, array $fields, array $files): void
+    {
+        if ($jsonData !== null) {
+            $this->outputDebugBodySection(
+                json_encode($jsonData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+            );
+
+            return;
+        }
+
+        if (! empty($files)) {
+            $this->newLine();
+            $this->comment('  Request Body');
+            $this->comment('  ------------');
+            collect($files)->each(function (string $filePath, string $fieldName) {
+                $size = file_exists($filePath) ? filesize($filePath) : 0;
+                $filename = basename($filePath);
+                $this->line("  {$fieldName}: {$filename} ({$size} bytes)");
+            });
+            collect($fields)->each(fn (string $value, string $fieldName) => $this->line("  {$fieldName}: {$value}"));
+
+            return;
+        }
+
+        if (empty($fields)) {
+            return;
+        }
+
+        $contentTypes = $this->operationData['requestBody']['content'] ?? [];
+        $isFormEncoded = ! empty($contentTypes) && ! isset($contentTypes['application/json']);
+
+        if ($isFormEncoded) {
+            $this->newLine();
+            $this->comment('  Request Body');
+            $this->comment('  ------------');
+            collect($fields)->each(fn (string $value, string $fieldName) => $this->line("  {$fieldName}: {$value}"));
+
+            return;
+        }
+
+        $this->outputDebugBodySection(
+            json_encode($fields, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        );
+    }
+
+    private function outputDebugBodySection(string $content): void
+    {
+        $this->newLine();
+        $this->comment('  Request Body');
+        $this->comment('  ------------');
+        $this->line("  {$content}");
     }
 
     /**
      * @param  array<string, string>  $files
      * @return array<string, string>
      */
-    private function collectDebugHeaders(?string $acceptTypes, PendingRequest $http, array $files): array
+    private function collectDebugHeaders(?string $acceptTypes, array $files): array
     {
         $headers = [];
 
@@ -365,18 +445,14 @@ class EndpointCommand extends Command
             $headers['Accept'] = $acceptTypes;
         }
 
-        if (! empty($files)) {
-            $headers['Content-Type'] = 'multipart/form-data';
-        } else {
-            $headers['Content-Type'] = 'application/json';
-        }
+        $headers['Content-Type'] = ! empty($files) ? 'multipart/form-data' : 'application/json';
 
         if ($this->config->getBearerToken() !== null) {
-            $headers['Authorization'] = 'Bearer '.$this->config->getBearerToken();
+            $headers['Authorization'] = "Bearer {$this->config->getBearerToken()}";
         } elseif ($this->config->getApiKeyHeader() !== null && $this->config->getApiKeyValue() !== null) {
             $headers[$this->config->getApiKeyHeader()] = $this->config->getApiKeyValue();
         } elseif ($this->config->getBasicUsername() !== null && $this->config->getBasicPassword() !== null) {
-            $headers['Authorization'] = 'Basic '.base64_encode($this->config->getBasicUsername().':'.$this->config->getBasicPassword());
+            $headers['Authorization'] = 'Basic '.base64_encode("{$this->config->getBasicUsername()}:{$this->config->getBasicPassword()}");
         } elseif ($this->config->getAuthCallable() !== null) {
             $headers['Authorization'] = 'Bearer (dynamic)';
         }
@@ -386,38 +462,39 @@ class EndpointCommand extends Command
 
     private function getAcceptContentTypes(): ?string
     {
-        $responses = $this->operationData['responses'] ?? [];
-        $contentTypes = [];
+        $contentTypes = collect($this->operationData['responses'] ?? [])
+            ->flatMap(fn (array $response) => array_keys($response['content'] ?? []))
+            ->unique()
+            ->implode(', ');
 
-        foreach ($responses as $response) {
-            foreach (array_keys($response['content'] ?? []) as $contentType) {
-                $contentTypes[$contentType] = true;
-            }
-        }
-
-        return $contentTypes !== [] ? implode(', ', array_keys($contentTypes)) : null;
+        return $contentTypes !== '' ? $contentTypes : null;
     }
 
     /**
-     * @param  array<string>  $fieldOptions
-     * @return array{fields: array<string, string>, files: array<string, string>}
+     * @param  array<int, string>  $fieldOptions
+     * @return array{
+     *     fields: array<string, string>,
+     *     files: array<string, string>,
+     * }
      */
     protected function parseFields(array $fieldOptions): array
     {
-        $fields = [];
-        $files = [];
-
-        foreach ($fieldOptions as $field) {
-            if (str_contains($field, '=')) {
+        $parsed = collect($fieldOptions)
+            ->filter(fn (string $field) => str_contains($field, '='))
+            ->mapWithKeys(function (string $field) {
                 [$key, $value] = explode('=', $field, 2);
 
-                if (str_starts_with($value, '@')) {
-                    $files[$key] = substr($value, 1);
-                } else {
-                    $fields[$key] = $value;
-                }
-            }
-        }
+                return [$key => $value];
+            });
+
+        $files = $parsed
+            ->filter(fn (string $value) => str_starts_with($value, '@'))
+            ->map(fn (string $value) => substr($value, 1))
+            ->all();
+
+        $fields = $parsed
+            ->reject(fn (string $value) => str_starts_with($value, '@'))
+            ->all();
 
         return [
             'fields' => $fields,
@@ -428,39 +505,25 @@ class EndpointCommand extends Command
     protected function flattenParams(array $params, array &$result, string $prefix = ''): void
     {
         foreach ($params as $key => $value) {
-            $fullKey = $prefix === '' ? $key : $prefix.'['.$key.']';
+            $fullKey = $prefix === '' ? $key : "{$prefix}[{$key}]";
 
             if (is_array($value)) {
                 $this->flattenParams($value, $result, $fullKey);
-            } else {
-                $result[] = urlencode($fullKey).'='.urlencode($value);
+
+                continue;
             }
+
+            $result[] = urlencode($fullKey).'='.urlencode($value);
         }
     }
 
     protected function outputResponse(Response $response): void
     {
-        $highlighter = new OutputHighlighter(
-            enabled: $this->output->isDecorated(),
-        );
-
-        if ($this->option('headers')) {
-            $statusCode = $response->status();
-            $reasonPhrase = $response->reason();
-            $this->line("HTTP/1.1 {$statusCode} {$reasonPhrase}");
-
-            foreach ($response->headers() as $name => $values) {
-                foreach ($values as $value) {
-                    $this->line("{$name}: {$value}");
-                }
-            }
-
-            $this->line('');
-        }
+        $this->outputResponseHeaders($response);
 
         if ($response->status() === 204) {
             $description = $this->operationData['responses']['204']['description'] ?? null;
-            $this->line($description ? "$description (204)" : 'No content (204)');
+            $this->line($description ? "{$description} (204)" : 'No content (204)');
 
             return;
         }
@@ -468,44 +531,74 @@ class EndpointCommand extends Command
         $body = $response->body();
         $decoded = json_decode($body, true);
 
-        if (json_last_error() === JSON_ERROR_NONE && $decoded !== null) {
-            $useYaml = $this->option('yaml') || $this->config->shouldOutputYaml();
-            $useJson = $this->option('json') || $this->option('minify') || $this->config->shouldOutputJson();
+        if (json_last_error() !== JSON_ERROR_NONE || $decoded === null) {
+            $this->outputNonJsonResponse($response, $body);
 
-            if ($useYaml && ! $this->option('json') && ! $this->option('minify')) {
-                $formatted = $highlighter->highlightYaml(rtrim(Yaml::dump($decoded, 10, 2)));
-
-                foreach (explode("\n", $formatted) as $line) {
-                    $this->line($line);
-                }
-            } elseif ($useJson || $useYaml) {
-                if ($this->option('minify')) {
-                    $formatted = json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                } else {
-                    $formatted = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                }
-
-                $this->line($highlighter->highlightJson($formatted));
-            } else {
-                $formatter = new HumanReadableFormatter((new Terminal)->getWidth());
-                $formatted = $highlighter->highlightHumanReadable($formatter->format($decoded));
-
-                foreach (explode("\n", $formatted) as $line) {
-                    $this->line($line);
-                }
-            }
-        } else {
-            $contentType = $response->header('Content-Type') ?: 'unknown';
-            $statusCode = $response->status();
-            $contentLength = $response->header('Content-Length') ?: strlen($body);
-            $this->line("Response is not JSON (content-type: {$contentType}, status: {$statusCode}, content-length: {$contentLength})");
-            $this->line('');
-
-            if (str_contains($contentType, 'text/html') && ! $this->option('output-html') && ! $this->config->shouldShowHtmlBody()) {
-                $this->line('Use --output-html to see the full response body.');
-            } else {
-                $this->line($body);
-            }
+            return;
         }
+
+        $this->outputJsonResponse($decoded);
+    }
+
+    protected function outputResponseHeaders(Response $response): void
+    {
+        if (! $this->option('headers')) {
+            return;
+        }
+
+        $this->line("HTTP/1.1 {$response->status()} {$response->reason()}");
+
+        collect($response->headers())->each(function (array $values, string $name) {
+            collect($values)->each(fn (string $value) => $this->line("{$name}: {$value}"));
+        });
+
+        $this->line('');
+    }
+
+    protected function outputJsonResponse(array $decoded): void
+    {
+        $highlighter = new OutputHighlighter(enabled: $this->output->isDecorated());
+        $useYaml = $this->option('yaml') || $this->config->shouldOutputYaml();
+        $useJson = $this->option('json') || $this->option('minify') || $this->config->shouldOutputJson();
+
+        if ($useYaml && ! $this->option('json') && ! $this->option('minify')) {
+            $this->outputLines($highlighter->highlightYaml(rtrim(Yaml::dump($decoded, 10, 2))));
+
+            return;
+        }
+
+        if ($useJson || $useYaml) {
+            $formatted = $this->option('minify')
+                ? json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+                : json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+            $this->line($highlighter->highlightJson($formatted));
+
+            return;
+        }
+
+        $formatter = new HumanReadableFormatter((new Terminal)->getWidth());
+        $this->outputLines($highlighter->highlightHumanReadable($formatter->format($decoded)));
+    }
+
+    protected function outputNonJsonResponse(Response $response, string $body): void
+    {
+        $contentType = $response->header('Content-Type') ?: 'unknown';
+        $contentLength = $response->header('Content-Length') ?: strlen($body);
+        $this->line("Response is not JSON (content-type: {$contentType}, status: {$response->status()}, content-length: {$contentLength})");
+        $this->line('');
+
+        if (str_contains($contentType, 'text/html') && ! $this->option('output-html') && ! $this->config->shouldShowHtmlBody()) {
+            $this->line('Use --output-html to see the full response body.');
+
+            return;
+        }
+
+        $this->line($body);
+    }
+
+    protected function outputLines(string $content): void
+    {
+        collect(explode("\n", $content))->each(fn (string $line) => $this->line($line));
     }
 }

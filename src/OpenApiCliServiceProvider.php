@@ -2,6 +2,7 @@
 
 namespace Spatie\OpenApiCli;
 
+use Illuminate\Support\Collection;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Spatie\OpenApiCli\Commands\EndpointCommand;
@@ -11,25 +12,14 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
-        /*
-         * This class is a Package Service Provider
-         *
-         * More info: https://github.com/spatie/laravel-package-tools
-         */
         $package
             ->name('laravel-openapi-cli');
     }
 
-    public function packageRegistered(): void
-    {
-        //
-    }
-
     public function packageBooted(): void
     {
-        foreach (OpenApiCli::getRegistrations() as $config) {
-            $this->registerEndpointCommands($config);
-        }
+        collect(OpenApiCli::getRegistrations())
+            ->each(fn (CommandConfiguration $config) => $this->registerEndpointCommands($config));
     }
 
     protected function registerEndpointCommands(CommandConfiguration $config): void
@@ -37,81 +27,72 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
         $parser = new OpenApiParser(SpecResolver::resolve($config->getSpecPath(), $config));
         $spec = $parser->getSpec();
         $resolver = new RefResolver($spec);
-        $pathsWithMethods = $parser->getPathsWithMethods();
-        $namespace = $config->getNamespace();
 
-        $endpoints = $this->resolveEndpoints($config, $pathsWithMethods, $spec, $resolver);
+        $commandBindings = $this->resolveEndpoints($config, $parser->getPathsWithMethods(), $spec, $resolver)
+            ->map(function (array $endpoint) use ($config) {
+                $namespace = $config->getNamespace();
+                $bindingKey = $namespace !== ''
+                    ? "openapi.{$namespace}.{$endpoint['commandSuffix']}"
+                    : "openapi.{$endpoint['commandSuffix']}";
 
-        $commandBindings = [];
+                $this->app->singleton($bindingKey, fn () => new EndpointCommand(
+                    $config,
+                    $endpoint['method'],
+                    $endpoint['path'],
+                    $endpoint['operationData'],
+                    $endpoint['commandSuffix'],
+                ));
 
-        foreach ($endpoints as $endpoint) {
-            $commandSuffix = $endpoint['commandSuffix'];
-            $bindingKey = $namespace !== '' ? "openapi.{$namespace}.{$commandSuffix}" : "openapi.{$commandSuffix}";
-
-            $this->app->singleton($bindingKey, function () use ($config, $endpoint, $commandSuffix) {
-                return new EndpointCommand($config, $endpoint['method'], $endpoint['path'], $endpoint['operationData'], $commandSuffix);
+                return $bindingKey;
             });
 
-            $commandBindings[] = $bindingKey;
-        }
-
-        // Register list command only when a namespace is set
         if ($config->hasNamespace()) {
-            $listBindingKey = "openapi.{$namespace}.list";
-            $this->app->singleton($listBindingKey, function () use ($config) {
-                return new ListCommand($config);
-            });
-            $commandBindings[] = $listBindingKey;
+            $listBindingKey = "openapi.{$config->getNamespace()}.list";
+            $this->app->singleton($listBindingKey, fn () => new ListCommand($config));
+            $commandBindings->push($listBindingKey);
         }
 
-        $this->commands($commandBindings);
+        $this->commands($commandBindings->all());
     }
 
-    /**
-     * Resolve all endpoints with their command suffixes, handling naming collisions.
-     *
-     * @return array<int, array{method: string, path: string, operationData: array, commandSuffix: string}>
-     */
-    protected function resolveEndpoints(CommandConfiguration $config, array $pathsWithMethods, array $spec, RefResolver $resolver): array
+    /** @return Collection<int|string, array{method: string, path: string, operationData: mixed, commandSuffix: string}> */
+    protected function resolveEndpoints(CommandConfiguration $config, array $pathsWithMethods, array $spec, RefResolver $resolver): Collection
     {
-        $endpoints = [];
+        $endpoints = collect($pathsWithMethods)
+            ->flatMap(function (array $methods, string $path) use ($config, $spec, $resolver) {
+                return collect($methods)->map(function (string $method) use ($config, $path, $spec, $resolver) {
+                    $operationData = $resolver->resolve($spec['paths'][$path][$method] ?? []);
 
-        foreach ($pathsWithMethods as $path => $methods) {
-            foreach ($methods as $method) {
-                $operationData = $spec['paths'][$path][$method] ?? [];
-                $operationData = $resolver->resolve($operationData);
+                    return [
+                        'method' => $method,
+                        'path' => $path,
+                        'operationData' => $operationData,
+                        'commandSuffix' => $this->resolveCommandSuffix($config, $method, $path, $operationData),
+                    ];
+                });
+            });
 
-                if ($config->shouldUseOperationIds()) {
-                    $operationId = $operationData['operationId'] ?? null;
-                    $commandSuffix = $operationId
-                        ? CommandNameGenerator::fromOperationId($operationId)
-                        : CommandNameGenerator::fromPath($method, $path);
-                } else {
-                    $commandSuffix = CommandNameGenerator::fromPath($method, $path);
-                }
+        $suffixCounts = $endpoints->countBy('commandSuffix');
 
-                $endpoints[] = [
-                    'method' => $method,
-                    'path' => $path,
-                    'operationData' => $operationData,
-                    'commandSuffix' => $commandSuffix,
-                ];
-            }
-        }
-
-        // Detect and resolve naming collisions
-        $suffixCounts = [];
-        foreach ($endpoints as $endpoint) {
-            $suffixCounts[$endpoint['commandSuffix']] = ($suffixCounts[$endpoint['commandSuffix']] ?? 0) + 1;
-        }
-
-        foreach ($endpoints as &$endpoint) {
-            if ($suffixCounts[$endpoint['commandSuffix']] > 1) {
-                // Collision detected - use disambiguated name
+        return $endpoints->map(function (array $endpoint) use ($suffixCounts) {
+            if ($suffixCounts->get($endpoint['commandSuffix']) > 1) {
                 $endpoint['commandSuffix'] = CommandNameGenerator::fromPathDisambiguated($endpoint['method'], $endpoint['path']);
             }
+
+            return $endpoint;
+        });
+    }
+
+    protected function resolveCommandSuffix(CommandConfiguration $config, string $method, string $path, array $operationData): string
+    {
+        if (! $config->shouldUseOperationIds()) {
+            return CommandNameGenerator::fromPath($method, $path);
         }
 
-        return $endpoints;
+        $operationId = $operationData['operationId'] ?? null;
+
+        return $operationId
+            ? CommandNameGenerator::fromOperationId($operationId)
+            : CommandNameGenerator::fromPath($method, $path);
     }
 }

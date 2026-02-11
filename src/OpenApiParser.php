@@ -2,6 +2,7 @@
 
 namespace Spatie\OpenApiCli;
 
+use InvalidArgumentException;
 use Symfony\Component\Yaml\Yaml;
 
 class OpenApiParser
@@ -11,11 +12,11 @@ class OpenApiParser
     public function __construct(string $filePath)
     {
         if (! file_exists($filePath)) {
-            throw new \InvalidArgumentException("Spec file not found: {$filePath}");
+            throw new InvalidArgumentException("Spec file not found: {$filePath}");
         }
 
         if (! is_readable($filePath)) {
-            throw new \InvalidArgumentException("Spec file is not readable: {$filePath}");
+            throw new InvalidArgumentException("Spec file is not readable: {$filePath}");
         }
 
         $this->spec = $this->parseFile($filePath);
@@ -44,16 +45,14 @@ class OpenApiParser
      */
     public function getPathsWithMethods(): array
     {
-        $paths = $this->getPaths();
-        $result = [];
-
-        foreach ($paths as $path => $methods) {
-            $result[$path] = array_keys(
-                array_filter($methods, fn ($key) => in_array($key, ['get', 'post', 'put', 'patch', 'delete']), ARRAY_FILTER_USE_KEY)
-            );
-        }
-
-        return $result;
+        return collect($this->getPaths())
+            ->map(fn (array $methods) => collect($methods)
+                ->keys()
+                ->intersect(['get', 'post', 'put', 'patch', 'delete'])
+                ->values()
+                ->all()
+            )
+            ->all();
     }
 
     public function getOperationSummary(string $path, string $method): ?string
@@ -76,22 +75,17 @@ class OpenApiParser
     public function getPathParameters(string $path, string $method): array
     {
         $method = strtolower($method);
-        $operation = $this->spec['paths'][$path][$method] ?? [];
-        $parameters = $operation['parameters'] ?? [];
+        $parameters = $this->spec['paths'][$path][$method]['parameters'] ?? [];
 
-        $pathParams = [];
-
-        foreach ($parameters as $param) {
-            if (($param['in'] ?? '') === 'path') {
-                $pathParams[] = [
-                    'name' => $param['name'] ?? '',
-                    'type' => $this->extractType($param['schema'] ?? []),
-                    'required' => $param['required'] ?? false,
-                ];
-            }
-        }
-
-        return $pathParams;
+        return collect($parameters)
+            ->filter(fn (array $param) => ($param['in'] ?? '') === 'path')
+            ->map(fn (array $param) => [
+                'name' => $param['name'] ?? '',
+                'type' => $this->extractType($param['schema'] ?? []),
+                'required' => $param['required'] ?? false,
+            ])
+            ->values()
+            ->all();
     }
 
     public function getOperationId(string $path, string $method): ?string
@@ -107,27 +101,19 @@ class OpenApiParser
     public function getQueryParameters(string $path, string $method): array
     {
         $method = strtolower($method);
-        $operation = $this->spec['paths'][$path][$method] ?? [];
-        $parameters = $operation['parameters'] ?? [];
-
+        $parameters = $this->spec['paths'][$path][$method]['parameters'] ?? [];
         $resolver = new RefResolver($this->spec);
 
-        $queryParams = [];
-
-        foreach ($parameters as $param) {
-            // Resolve $ref if present
-            $param = $resolver->resolve($param);
-
-            if (($param['in'] ?? '') === 'query') {
-                $queryParams[] = [
-                    'name' => $param['name'] ?? '',
-                    'required' => $param['required'] ?? false,
-                    'description' => $param['description'] ?? '',
-                ];
-            }
-        }
-
-        return $queryParams;
+        return collect($parameters)
+            ->map(fn (array $param) => $resolver->resolve($param))
+            ->filter(fn (array $param) => ($param['in'] ?? '') === 'query')
+            ->map(fn (array $param) => [
+                'name' => $param['name'] ?? '',
+                'required' => $param['required'] ?? false,
+                'description' => $param['description'] ?? '',
+            ])
+            ->values()
+            ->all();
     }
 
     public function getRequestBodySchema(string $path, string $method): ?array
@@ -182,7 +168,7 @@ class OpenApiParser
         return match ($extension) {
             'yaml', 'yml' => $this->parseYaml($filePath),
             'json' => $this->parseJson($filePath),
-            default => throw new \InvalidArgumentException("Unsupported file format: {$extension}. Only YAML and JSON are supported."),
+            default => throw new InvalidArgumentException("Unsupported file format: {$extension}. Only YAML and JSON are supported."),
         };
     }
 
@@ -192,12 +178,12 @@ class OpenApiParser
             $parsed = Yaml::parseFile($filePath);
 
             if (! is_array($parsed)) {
-                throw new \InvalidArgumentException("Invalid YAML file: {$filePath}");
+                throw new InvalidArgumentException("Invalid YAML file: {$filePath}");
             }
 
             return $parsed;
         } catch (\Exception $e) {
-            throw new \InvalidArgumentException("Failed to parse YAML file: {$e->getMessage()}", 0, $e);
+            throw new InvalidArgumentException("Failed to parse YAML file: {$e->getMessage()}", 0, $e);
         }
     }
 
@@ -206,19 +192,19 @@ class OpenApiParser
         $contents = file_get_contents($filePath);
 
         if ($contents === false) {
-            throw new \InvalidArgumentException("Failed to read file: {$filePath}");
+            throw new InvalidArgumentException("Failed to read file: {$filePath}");
         }
 
         try {
             $parsed = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
 
             if (! is_array($parsed)) {
-                throw new \InvalidArgumentException("Invalid JSON file: {$filePath}");
+                throw new InvalidArgumentException("Invalid JSON file: {$filePath}");
             }
 
             return $parsed;
         } catch (\JsonException $e) {
-            throw new \InvalidArgumentException("Failed to parse JSON file: {$e->getMessage()}", 0, $e);
+            throw new InvalidArgumentException("Failed to parse JSON file: {$e->getMessage()}", 0, $e);
         }
     }
 
