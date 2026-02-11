@@ -2,6 +2,8 @@
 
 namespace Spatie\OpenApiCli;
 
+use Illuminate\Support\Collection;
+
 class HumanReadableFormatter
 {
     private const MAX_DEPTH = 4;
@@ -86,21 +88,16 @@ class HumanReadableFormatter
 
     private function formatNestedObject(array $data, int $depth): string
     {
-        $sections = [];
         $headingPrefix = str_repeat('#', min($depth + 1, 6));
 
-        foreach ($data as $key => $value) {
-            $heading = "{$headingPrefix} ".$this->humanizeKey((string) $key);
+        return collect($data)
+            ->map(function ($value, string $key) use ($headingPrefix, $depth) {
+                $heading = "{$headingPrefix} ".$this->humanizeKey($key);
+                $body = is_array($value) ? $this->format($value, $depth + 1) : $this->formatScalar($value);
 
-            if (is_array($value)) {
-                $formatted = $this->format($value, $depth + 1);
-                $sections[] = "{$heading}\n\n{$formatted}";
-            } else {
-                $sections[] = "{$heading}\n\n".$this->formatScalar($value);
-            }
-        }
-
-        return implode("\n\n", $sections);
+                return "{$heading}\n\n{$body}";
+            })
+            ->implode("\n\n");
     }
 
     private function formatArray(array $data, int $depth): string
@@ -118,149 +115,72 @@ class HumanReadableFormatter
 
     private function formatBulletList(array $data): string
     {
-        $lines = [];
-
-        foreach ($data as $item) {
-            $lines[] = '- '.$this->formatScalar($item);
-        }
-
-        return implode("\n", $lines);
+        return collect($data)
+            ->map(fn ($item) => '- '.$this->formatScalar($item))
+            ->implode("\n");
     }
 
     private function formatTable(array $data): string
     {
-        $keys = array_keys($data[0]);
+        $keys = collect(array_keys($data[0]));
+        $headers = $keys->map(fn (string $key) => $this->humanizeKey($key));
 
-        $headers = array_map(fn (string $key) => $this->humanizeKey($key), $keys);
+        $rows = collect($data)->map(fn (array $item) => $keys->map(function (string $key) use ($item) {
+            $value = $item[$key] ?? null;
 
-        /** @var array<int, array<int, string>> $rows */
-        $rows = [];
+            return is_array($value)
+                ? (json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '')
+                : $this->formatScalar($value);
+        }));
 
-        foreach ($data as $item) {
-            $row = [];
+        $columnWidths = $headers->map(fn (string $header, int $i) => max(
+            mb_strlen($header),
+            $rows->max(fn ($row) => mb_strlen($row[$i]))
+        ));
 
-            foreach ($keys as $key) {
-                $value = $item[$key] ?? null;
-
-                if (is_array($value)) {
-                    $cell = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
-                } else {
-                    $cell = $this->formatScalar($value);
-                }
-
-                $row[] = $cell;
-            }
-
-            $rows[] = $row;
-        }
-
-        $columnWidths = [];
-
-        foreach ($headers as $i => $header) {
-            $columnWidths[$i] = mb_strlen($header);
-        }
-
-        foreach ($rows as $row) {
-            foreach ($row as $i => $cell) {
-                $columnWidths[$i] = max($columnWidths[$i], mb_strlen($cell));
-            }
-        }
-
-        $totalWidth = array_sum($columnWidths) + 3 * (count($columnWidths) - 1) + 4;
+        $totalWidth = $columnWidths->sum() + 3 * ($columnWidths->count() - 1) + 4;
 
         if ($this->terminalWidth !== null && $totalWidth > $this->terminalWidth) {
-            return $this->formatVerticalCards($keys, $headers, $rows);
+            return $this->formatVerticalCards($headers, $rows);
         }
 
-        $lines = [];
+        $formatRow = fn ($cells) => '| '.$cells->map(fn (string $cell, int $i) => $this->padCell($cell, $columnWidths[$i]))->implode(' | ').' |';
 
-        $headerCells = [];
-
-        foreach ($headers as $i => $header) {
-            $headerCells[] = $this->padCell($header, $columnWidths[$i]);
-        }
-
-        $lines[] = '| '.implode(' | ', $headerCells).' |';
-
-        $separatorCells = [];
-
-        foreach ($columnWidths as $width) {
-            $separatorCells[] = str_repeat('-', $width);
-        }
-
-        $lines[] = '| '.implode(' | ', $separatorCells).' |';
-
-        foreach ($rows as $row) {
-            $rowCells = [];
-
-            foreach ($row as $i => $cell) {
-                $rowCells[] = $this->padCell($cell, $columnWidths[$i]);
-            }
-
-            $lines[] = '| '.implode(' | ', $rowCells).' |';
-        }
-
-        return implode("\n", $lines);
+        return collect([
+            $formatRow($headers),
+            '| '.$columnWidths->map(fn (int $width) => str_repeat('-', $width))->implode(' | ').' |',
+            ...$rows->map($formatRow),
+        ])->implode("\n");
     }
 
-    /**
-     * @param  array<int, string>  $keys
-     * @param  array<int, string>  $headers
-     * @param  array<int, array<int, string>>  $rows
-     */
-    private function formatVerticalCards(array $keys, array $headers, array $rows): string
+    private function formatVerticalCards(Collection $headers, Collection $rows): string
     {
-        $keyWidth = max(array_map('mb_strlen', $headers));
-
-        $valueWidth = 0;
-
-        foreach ($rows as $row) {
-            foreach ($row as $cell) {
-                $valueWidth = max($valueWidth, mb_strlen($cell));
-            }
-        }
+        $keyWidth = $headers->max(fn (string $header) => mb_strlen($header));
+        $valueWidth = $rows->flatMap->values()->max(fn (string $cell) => mb_strlen($cell));
 
         $totalWidth = $keyWidth + $valueWidth + 7;
         $useTable = $this->terminalWidth === null || $totalWidth <= $this->terminalWidth;
 
-        $cards = [];
+        $cards = $rows->map(fn (Collection $row) => $row->values()
+            ->map(fn (string $cell, int $i) => $useTable
+                ? '| '.$this->padCell($headers[$i], $keyWidth).' | '.$this->padCell($cell, $valueWidth).' |'
+                : $headers[$i].': '.$cell
+            )
+            ->implode("\n")
+        );
 
-        foreach ($rows as $row) {
-            $lines = [];
-
-            foreach (array_values($row) as $i => $cell) {
-                if ($useTable) {
-                    $lines[] = '| '.$this->padCell($headers[$i], $keyWidth).' | '.$this->padCell($cell, $valueWidth).' |';
-                } else {
-                    $lines[] = $headers[$i].': '.$cell;
-                }
-            }
-
-            $cards[] = implode("\n", $lines);
-        }
-
-        if ($useTable) {
-            $separator = str_repeat('-', $totalWidth);
-
-            return implode("\n".$separator."\n", $cards);
-        }
-
-        return implode("\n\n", $cards);
+        return $useTable
+            ? $cards->implode("\n".str_repeat('-', $totalWidth)."\n")
+            : $cards->implode("\n\n");
     }
 
     private function formatHeterogeneousList(array $data, int $depth): string
     {
-        $sections = [];
         $headingPrefix = str_repeat('#', min($depth + 1, 6));
 
-        foreach ($data as $index => $item) {
-            $number = $index + 1;
-            $heading = "{$headingPrefix} Item {$number}";
-            $formatted = $this->format($item, $depth + 1);
-            $sections[] = "{$heading}\n\n{$formatted}";
-        }
-
-        return implode("\n\n", $sections);
+        return collect($data)
+            ->map(fn ($item, int $index) => "{$headingPrefix} Item ".($index + 1)."\n\n".$this->format($item, $depth + 1))
+            ->implode("\n\n");
     }
 
     public function formatScalar(mixed $value): string
