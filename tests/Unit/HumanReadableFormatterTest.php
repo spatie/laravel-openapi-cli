@@ -63,11 +63,7 @@ it('humanizes compound keys with abbreviations', function () {
 it('formats simple objects as headerless table', function () {
     $data = ['name' => 'John', 'email' => 'john@example.com', 'active' => true];
 
-    $expected = <<<'TEXT'
-| Name   | John             |
-| Email  | john@example.com |
-| Active | Yes              |
-TEXT;
+    $expected = "| Name   | John             |\n| Email  | john@example.com |\n| Active | Yes              |";
 
     expect($this->formatter->format($data))->toBe($expected);
 });
@@ -75,10 +71,7 @@ TEXT;
 it('formats simple object with null values', function () {
     $data = ['name' => 'John', 'nickname' => null];
 
-    $expected = <<<'TEXT'
-| Name     | John    |
-| Nickname | (empty) |
-TEXT;
+    $expected = "| Name     | John    |\n| Nickname | (empty) |";
 
     expect($this->formatter->format($data))->toBe($expected);
 });
@@ -94,11 +87,7 @@ it('formats empty array as empty list', function () {
 it('formats array of strings as bullet list', function () {
     $data = ['apple', 'banana', 'cherry'];
 
-    $expected = <<<'TEXT'
-- apple
-- banana
-- cherry
-TEXT;
+    $expected = "- apple\n- banana\n- cherry";
 
     expect($this->formatter->format($data))->toBe($expected);
 });
@@ -106,12 +95,7 @@ TEXT;
 it('formats array of mixed scalars as bullet list', function () {
     $data = ['hello', 42, true, null];
 
-    $expected = <<<'TEXT'
-- hello
-- 42
-- Yes
-- (empty)
-TEXT;
+    $expected = "- hello\n- 42\n- Yes\n- (empty)";
 
     expect($this->formatter->format($data))->toBe($expected);
 });
