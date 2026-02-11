@@ -45,16 +45,7 @@ class HumanReadableFormatter
 
     private function formatObject(array $data, int $depth): string
     {
-        $hasNestedValues = false;
-
-        foreach ($data as $value) {
-            if (is_array($value)) {
-                $hasNestedValues = true;
-                break;
-            }
-        }
-
-        if (! $hasNestedValues) {
+        if (! collect($data)->contains(fn ($value) => is_array($value))) {
             return $this->formatSimpleObject($data);
         }
 
@@ -63,15 +54,12 @@ class HumanReadableFormatter
 
     private function formatSimpleObject(array $data): string
     {
-        $keys = [];
-        $values = [];
+        $collection = collect($data);
 
-        foreach ($data as $key => $value) {
-            $keys[] = $this->humanizeKey((string) $key);
-            $values[] = $this->formatScalar($value);
-        }
-
-        return $this->formatKeyValueTable($keys, $values);
+        return $this->formatKeyValueTable(
+            $collection->keys()->map(fn (string $key) => $this->humanizeKey($key))->all(),
+            $collection->values()->map(fn ($value) => $this->formatScalar($value))->all(),
+        );
     }
 
     /**
@@ -80,28 +68,20 @@ class HumanReadableFormatter
      */
     private function formatKeyValueTable(array $keys, array $values): string
     {
-        $keyWidth = max(array_map('mb_strlen', $keys));
-        $valueWidth = max(array_map('mb_strlen', $values));
+        $keyWidth = collect($keys)->max(fn (string $key) => mb_strlen($key));
+        $valueWidth = collect($values)->max(fn (string $value) => mb_strlen($value));
 
         $totalWidth = $keyWidth + $valueWidth + 7; // "| " + " | " + " |"
 
         if ($this->terminalWidth !== null && $totalWidth > $this->terminalWidth) {
-            $lines = [];
-
-            foreach ($keys as $i => $key) {
-                $lines[] = $key.': '.$values[$i];
-            }
-
-            return implode("\n", $lines);
+            return collect($keys)
+                ->map(fn (string $key, int $i) => $key.': '.$values[$i])
+                ->implode("\n");
         }
 
-        $lines = [];
-
-        foreach ($keys as $i => $key) {
-            $lines[] = '| '.$this->padCell($key, $keyWidth).' | '.$this->padCell($values[$i], $valueWidth).' |';
-        }
-
-        return implode("\n", $lines);
+        return collect($keys)
+            ->map(fn (string $key, int $i) => '| '.$this->padCell($key, $keyWidth).' | '.$this->padCell($values[$i], $valueWidth).' |')
+            ->implode("\n");
     }
 
     private function formatNestedObject(array $data, int $depth): string
