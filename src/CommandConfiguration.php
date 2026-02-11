@@ -27,9 +27,13 @@ class CommandConfiguration
 
     protected bool $useOperationIds = false;
 
-    protected ?int $cacheTtl = null;
+    protected bool $cacheEnabled = false;
 
-    protected bool $noCache = false;
+    protected int $cacheTtl = 60;
+
+    protected ?string $cacheStore = null;
+
+    protected string $cachePrefix = 'openapi-cli-spec:';
 
     protected bool $showHtmlBody = false;
 
@@ -167,28 +171,34 @@ class CommandConfiguration
         return $this->useOperationIds;
     }
 
-    public function cacheTtl(int $seconds): self
+    public function cache(int $ttl = 60, ?string $store = null, string $prefix = 'openapi-cli-spec:'): self
     {
-        $this->cacheTtl = $seconds;
+        $this->cacheEnabled = true;
+        $this->cacheTtl = $ttl;
+        $this->cacheStore = $store;
+        $this->cachePrefix = $prefix;
 
         return $this;
     }
 
-    public function getCacheTtl(): ?int
+    public function shouldCache(): bool
+    {
+        return $this->cacheEnabled;
+    }
+
+    public function getCacheTtl(): int
     {
         return $this->cacheTtl;
     }
 
-    public function noCache(): self
+    public function getCacheStore(): ?string
     {
-        $this->noCache = true;
-
-        return $this;
+        return $this->cacheStore;
     }
 
-    public function shouldSkipCache(): bool
+    public function getCachePrefix(): string
     {
-        return $this->noCache;
+        return $this->cachePrefix;
     }
 
     public function showHtmlBody(): self

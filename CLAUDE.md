@@ -12,7 +12,6 @@ Laravel package (not an app) - maintains Spatie package skeleton structure.
 ## Key Files & Structure
 - **Source**: `src/` - all package code
 - **Tests**: `tests/` - Pest tests (Unit/ and Feature/ subdirs)
-- **Config**: `config/openapi-cli.php` - package configuration
 - **Test fixture**: `flare-api.yaml` - use this for OpenAPI-related tests
 - **Service Provider**: `src/OpenApiCliServiceProvider.php` - extends PackageServiceProvider
 - **Facade**: `src/Facades/OpenApiCli.php`

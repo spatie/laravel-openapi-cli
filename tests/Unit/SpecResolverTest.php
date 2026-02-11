@@ -177,18 +177,21 @@ it('defaults to yaml when no format signals are available', function () {
     @unlink($result);
 });
 
-it('caches remote spec content', function () {
+it('caches remote spec content when cache is enabled', function () {
     $yamlContent = "openapi: 3.0.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}";
 
     Http::fake([
         'https://api.example.com/spec.yaml' => Http::response($yamlContent, 200),
     ]);
 
+    $config = new CommandConfiguration('https://api.example.com/spec.yaml', 'test');
+    $config->cache();
+
     // First call - fetches from HTTP
-    $result1 = SpecResolver::resolve('https://api.example.com/spec.yaml');
+    $result1 = SpecResolver::resolve('https://api.example.com/spec.yaml', $config);
 
     // Second call - should use cache (no additional HTTP call)
-    $result2 = SpecResolver::resolve('https://api.example.com/spec.yaml');
+    $result2 = SpecResolver::resolve('https://api.example.com/spec.yaml', $config);
 
     expect($result1)->toBe($result2);
 
@@ -197,7 +200,7 @@ it('caches remote spec content', function () {
     @unlink($result1);
 });
 
-it('skips cache when noCache is set', function () {
+it('does not cache by default', function () {
     $yamlContent = "openapi: 3.0.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}";
 
     Http::fake([
@@ -205,12 +208,11 @@ it('skips cache when noCache is set', function () {
     ]);
 
     $config = new CommandConfiguration('https://api.example.com/spec.yaml', 'test');
-    $config->noCache();
 
     // First call
     $result1 = SpecResolver::resolve('https://api.example.com/spec.yaml', $config);
 
-    // Second call - should fetch again because noCache
+    // Second call - should fetch again because cache is not enabled
     $result2 = SpecResolver::resolve('https://api.example.com/spec.yaml', $config);
 
     Http::assertSentCount(2);
@@ -228,7 +230,7 @@ it('uses custom TTL from config', function () {
     Cache::spy();
 
     $config = new CommandConfiguration('https://api.example.com/spec.yaml', 'test');
-    $config->cacheTtl(600);
+    $config->cache(ttl: 600);
 
     SpecResolver::resolve('https://api.example.com/spec.yaml', $config);
 

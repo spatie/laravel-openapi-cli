@@ -23,12 +23,13 @@ class SpecResolver
 
     protected static function resolveUrl(string $url, ?CommandConfiguration $config = null): string
     {
-        $skipCache = $config?->shouldSkipCache() ?? false;
-        $prefix = config('openapi-cli.cache.prefix', 'openapi-cli-spec:');
+        $useCache = $config?->shouldCache() ?? false;
+        $prefix = $config?->getCachePrefix() ?? 'openapi-cli-spec:';
+        $cacheStore = $config?->getCacheStore();
         $cacheKey = $prefix.md5($url);
 
-        if (! $skipCache) {
-            $cached = Cache::store(config('openapi-cli.cache.store'))->get($cacheKey);
+        if ($useCache) {
+            $cached = Cache::store($cacheStore)->get($cacheKey);
 
             if ($cached !== null) {
                 return static::writeTempFile($cached['content'], $cached['extension']);
@@ -44,10 +45,10 @@ class SpecResolver
         $content = $response->body();
         $extension = static::detectExtension($url, $response->header('Content-Type'), $content);
 
-        if (! $skipCache) {
-            $ttl = $config?->getCacheTtl() ?? config('openapi-cli.cache.ttl', 60);
+        if ($useCache) {
+            $ttl = $config?->getCacheTtl() ?? 60;
 
-            Cache::store(config('openapi-cli.cache.store'))->put($cacheKey, [
+            Cache::store($cacheStore)->put($cacheKey, [
                 'content' => $content,
                 'extension' => $extension,
             ], $ttl);

@@ -12,7 +12,7 @@ OpenApiCli::register('https://api.bookstore.io/openapi.yaml', 'bookstore')
     ->baseUrl('https://api.bookstore.io')
     ->bearer(env('BOOKSTORE_TOKEN'))
     ->banner('Bookstore API v2')
-    ->cacheTtl(600)
+    ->cache(ttl: 600)
     ->followRedirects()
     ->yamlOutput()
     ->showHtmlBody()
@@ -94,12 +94,6 @@ composer require spatie/laravel-openapi-cli
 
 The package will automatically register its service provider.
 
-You can optionally publish the config file:
-
-```bash
-php artisan vendor:publish --tag="laravel-openapi-cli-config"
-```
-
 ## Usage
 
 ### Registering an API
@@ -144,7 +138,7 @@ Note: The `list` command is **not registered** when no namespace is set, since i
 
 ### Remote specs
 
-You can register a spec directly from a URL. The spec is fetched via HTTP and cached using Laravel's cache:
+You can register a spec directly from a URL. The spec is fetched via HTTP on every boot by default:
 
 ```php
 OpenApiCli::register('https://api.example.com/openapi.yaml', 'example')
@@ -152,21 +146,22 @@ OpenApiCli::register('https://api.example.com/openapi.yaml', 'example')
     ->bearer(env('EXAMPLE_TOKEN'));
 ```
 
-By default, remote specs are cached for 1 minute. You can customize the TTL per registration:
+To enable caching (recommended for production), call `cache()`:
 
 ```php
 OpenApiCli::register('https://api.example.com/openapi.yaml', 'example')
-    ->cacheTtl(600); // 10 minutes
+    ->cache(); // cache for 60 seconds (default)
 ```
 
-To disable caching entirely (always re-fetch):
+You can customize the TTL, cache store, and key prefix:
 
 ```php
 OpenApiCli::register('https://api.example.com/openapi.yaml', 'example')
-    ->noCache();
-```
+    ->cache(ttl: 600); // 10 minutes
 
-The cache store and key prefix can be configured in `config/openapi-cli.php`.
+OpenApiCli::register('https://api.example.com/openapi.yaml', 'example')
+    ->cache(ttl: 600, store: 'redis', prefix: 'my-api:');
+```
 
 ### Command naming
 
@@ -185,6 +180,18 @@ When two paths would produce the same command name (e.g. `/books` and `/books/{i
 |------|----------------------|-------------------|
 | `/books` | `bookstore:get-books` | `get-books` |
 | `/books/{id}` | `bookstore:get-books-id` | `get-books-id` |
+
+#### Operation ID mode
+
+If your spec includes `operationId` fields, you can use those for command names instead of the URL path:
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
+    ->baseUrl('https://api.example.com')
+    ->useOperationIds();
+```
+
+With `operationId: listBooks` in the spec, the command becomes `api:list-books` instead of `api:get-books`. Endpoints without an `operationId` fall back to path-based naming.
 
 ### Path parameters
 
@@ -464,18 +471,6 @@ OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
     ->baseUrl('https://api.example.com')
     ->followRedirects();
 ```
-
-### Operation ID mode
-
-By default, commands are named from the URL path. If your spec includes `operationId` fields, you can use those instead:
-
-```php
-OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
-    ->baseUrl('https://api.example.com')
-    ->useOperationIds();
-```
-
-With `operationId: listBooks` in the spec, the command becomes `api:list-books` instead of `api:get-books`. Endpoints without an `operationId` fall back to path-based naming.
 
 ### Error handling
 

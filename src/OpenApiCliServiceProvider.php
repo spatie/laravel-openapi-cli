@@ -17,8 +17,7 @@ class OpenApiCliServiceProvider extends PackageServiceProvider
          * More info: https://github.com/spatie/laravel-package-tools
          */
         $package
-            ->name('laravel-openapi-cli')
-            ->hasConfigFile();
+            ->name('laravel-openapi-cli');
     }
 
     public function packageRegistered(): void

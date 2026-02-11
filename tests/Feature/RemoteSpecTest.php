@@ -71,13 +71,14 @@ it('registers and executes commands from a remote JSON spec', function () use ($
         ->assertSuccessful();
 });
 
-it('caches remote spec and avoids duplicate HTTP fetches', function () use ($specYaml) {
+it('caches remote spec and avoids duplicate HTTP fetches when cache is enabled', function () use ($specYaml) {
     Http::fake([
         'https://specs.example.com/api.yaml' => Http::response($specYaml, 200),
         'https://api.example.com/projects' => Http::response(['data' => []], 200),
     ]);
 
-    OpenApiCli::register('https://specs.example.com/api.yaml', 'remote-api');
+    OpenApiCli::register('https://specs.example.com/api.yaml', 'remote-api')
+        ->cache();
 
     // Run the command twice - spec should only be fetched once per unique resolve call
     $this->artisan('remote-api:get-projects')
@@ -97,19 +98,18 @@ it('caches remote spec and avoids duplicate HTTP fetches', function () use ($spe
     expect($specFetches)->toBe(1);
 });
 
-it('respects noCache and re-fetches on every resolve', function () use ($specYaml) {
+it('re-fetches on every resolve when cache is not enabled', function () use ($specYaml) {
     Http::fake([
         'https://specs.example.com/api.yaml' => Http::response($specYaml, 200),
         'https://api.example.com/projects' => Http::response(['data' => []], 200),
     ]);
 
-    OpenApiCli::register('https://specs.example.com/api.yaml', 'remote-api')
-        ->noCache();
+    OpenApiCli::register('https://specs.example.com/api.yaml', 'remote-api');
 
     $this->artisan('remote-api:get-projects')
         ->assertSuccessful();
 
-    // With noCache, every resolve call fetches
+    // Without cache(), every resolve call fetches
     $specFetches = 0;
     Http::assertSent(function ($request) use (&$specFetches) {
         if ($request->url() === 'https://specs.example.com/api.yaml') {
@@ -141,7 +141,7 @@ it('supports custom cache TTL for remote specs', function () use ($specYaml) {
     ]);
 
     OpenApiCli::register('https://specs.example.com/api.yaml', 'remote-api')
-        ->cacheTtl(600);
+        ->cache(ttl: 600);
 
     $this->artisan('remote-api:get-projects')
         ->assertSuccessful();
