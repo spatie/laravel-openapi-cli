@@ -178,7 +178,7 @@ it('shows error when file is not readable', function () {
         chmod($unreadableFile, 0644);
         unlink($unreadableFile);
     }
-});
+})->skipOnWindows();
 
 it('sends file content correctly', function () {
     $customContent = "This is custom file content\nwith multiple lines\nand special chars: !@#$%";
