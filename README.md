@@ -1,4 +1,4 @@
-# Create a Laravel command for your OpenAPI specs
+# Create Laravel commands for your OpenAPI specs
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/spatie/laravel-openapi-cli.svg?style=flat-square)](https://packagist.org/packages/spatie/laravel-openapi-cli)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/spatie/laravel-openapi-cli/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/spatie/laravel-openapi-cli/actions?query=workflow%3Arun-tests+branch%3Amain)
@@ -28,7 +28,7 @@ OpenApiCli::register('https://api.bookstore.io/openapi.yaml', 'bookstore')
 List all endpoints:
 
 ```bash
-$ php artisan bookstore:list
+php artisan bookstore:list
 ```
 ```
 Bookstore API v2
@@ -42,7 +42,7 @@ DELETE bookstore:delete-books          Delete a book
 Human-readable output (default):
 
 ```bash
-$ php artisan bookstore:get-books --limit=2
+php artisan bookstore:get-books --limit=2
 ```
 ```
 # Data
@@ -60,7 +60,7 @@ total: 2
 YAML output:
 
 ```bash
-$ php artisan bookstore:get-books --limit=2 --yaml
+php artisan bookstore:get-books --limit=2 --yaml
 ```
 ```yaml
 data:
