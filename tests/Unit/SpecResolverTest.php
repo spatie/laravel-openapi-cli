@@ -227,14 +227,18 @@ it('uses custom TTL from config', function () {
         'https://api.example.com/spec.yaml' => Http::response($yamlContent, 200),
     ]);
 
-    Cache::spy();
+    $store = Mockery::mock();
+    $store->shouldReceive('get')->once()->andReturn(null);
+    $store->shouldReceive('put')->once()->withArgs(function ($key, $data, $ttl) {
+        return $ttl === 600;
+    });
+
+    Cache::shouldReceive('store')->with(null)->andReturn($store);
 
     $config = new CommandConfiguration('https://api.example.com/spec.yaml', 'test');
     $config->cache(ttl: 600);
 
     SpecResolver::resolve('https://api.example.com/spec.yaml', $config);
-
-    Cache::shouldHaveReceived('store')->atLeast()->once();
 });
 
 it('throws RuntimeException on HTTP failure', function () {
