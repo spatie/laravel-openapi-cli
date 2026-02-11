@@ -28,7 +28,7 @@ OpenApiCli::register('https://api.bookstore.io/openapi.yaml', 'bookstore')
 List all endpoints:
 
 ```bash
-$ php artisan bookstore:list
+php artisan bookstore:list
 ```
 ```
 Bookstore API v2
@@ -42,7 +42,7 @@ DELETE bookstore:delete-books          Delete a book
 Human-readable output (default):
 
 ```bash
-$ php artisan bookstore:get-books --limit=2
+php artisan bookstore:get-books --limit=2
 ```
 ```
 # Data
@@ -60,7 +60,7 @@ total: 2
 YAML output:
 
 ```bash
-$ php artisan bookstore:get-books --limit=2 --yaml
+php artisan bookstore:get-books --limit=2 --yaml
 ```
 ```yaml
 data:
