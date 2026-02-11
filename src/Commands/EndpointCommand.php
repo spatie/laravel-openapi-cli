@@ -142,10 +142,12 @@ class EndpointCommand extends Command
             }
         }
 
-        if ((! empty($fields) || ! empty($files)) && $jsonData !== null) {
-            $this->error('Cannot use both --field and --input options. Use --input for JSON data or --field for form fields, not both.');
+        if (! empty($fields) || ! empty($files)) {
+            if ($jsonData !== null) {
+                $this->error('Cannot use both --field and --input options. Use --input for JSON data or --field for form fields, not both.');
 
-            return null;
+                return null;
+            }
         }
 
         return [
@@ -246,8 +248,10 @@ class EndpointCommand extends Command
         if ($response->status() >= 400) {
             $onError = $this->config->getOnErrorCallable();
 
-            if ($onError && $onError($response, $this)) {
-                return self::FAILURE;
+            if ($onError) {
+                if ($onError($response, $this)) {
+                    return self::FAILURE;
+                }
             }
 
             $this->error("HTTP {$response->status()} Error");
@@ -328,12 +332,16 @@ class EndpointCommand extends Command
             return $http->withToken($this->config->getBearerToken());
         }
 
-        if ($this->config->getApiKeyHeader() !== null && $this->config->getApiKeyValue() !== null) {
-            return $http->withHeader($this->config->getApiKeyHeader(), $this->config->getApiKeyValue());
+        if ($this->config->getApiKeyHeader() !== null) {
+            if ($this->config->getApiKeyValue() !== null) {
+                return $http->withHeader($this->config->getApiKeyHeader(), $this->config->getApiKeyValue());
+            }
         }
 
-        if ($this->config->getBasicUsername() !== null && $this->config->getBasicPassword() !== null) {
-            return $http->withBasicAuth($this->config->getBasicUsername(), $this->config->getBasicPassword());
+        if ($this->config->getBasicUsername() !== null) {
+            if ($this->config->getBasicPassword() !== null) {
+                return $http->withBasicAuth($this->config->getBasicUsername(), $this->config->getBasicPassword());
+            }
         }
 
         if ($this->config->getAuthCallable() !== null) {
@@ -449,10 +457,14 @@ class EndpointCommand extends Command
 
         if ($this->config->getBearerToken() !== null) {
             $headers['Authorization'] = "Bearer {$this->config->getBearerToken()}";
-        } elseif ($this->config->getApiKeyHeader() !== null && $this->config->getApiKeyValue() !== null) {
-            $headers[$this->config->getApiKeyHeader()] = $this->config->getApiKeyValue();
-        } elseif ($this->config->getBasicUsername() !== null && $this->config->getBasicPassword() !== null) {
-            $headers['Authorization'] = 'Basic '.base64_encode("{$this->config->getBasicUsername()}:{$this->config->getBasicPassword()}");
+        } elseif ($this->config->getApiKeyHeader() !== null) {
+            if ($this->config->getApiKeyValue() !== null) {
+                $headers[$this->config->getApiKeyHeader()] = $this->config->getApiKeyValue();
+            }
+        } elseif ($this->config->getBasicUsername() !== null) {
+            if ($this->config->getBasicPassword() !== null) {
+                $headers['Authorization'] = 'Basic '.base64_encode("{$this->config->getBasicUsername()}:{$this->config->getBasicPassword()}");
+            }
         } elseif ($this->config->getAuthCallable() !== null) {
             $headers['Authorization'] = 'Bearer (dynamic)';
         }
@@ -561,10 +573,14 @@ class EndpointCommand extends Command
         $useYaml = $this->option('yaml') || $this->config->shouldOutputYaml();
         $useJson = $this->option('json') || $this->option('minify') || $this->config->shouldOutputJson();
 
-        if ($useYaml && ! $this->option('json') && ! $this->option('minify')) {
-            $this->outputLines($highlighter->highlightYaml(rtrim(Yaml::dump($decoded, 10, 2))));
+        if ($useYaml) {
+            if (! $this->option('json')) {
+                if (! $this->option('minify')) {
+                    $this->outputLines($highlighter->highlightYaml(rtrim(Yaml::dump($decoded, 10, 2))));
 
-            return;
+                    return;
+                }
+            }
         }
 
         if ($useJson || $useYaml) {
@@ -588,10 +604,14 @@ class EndpointCommand extends Command
         $this->line("Response is not JSON (content-type: {$contentType}, status: {$response->status()}, content-length: {$contentLength})");
         $this->line('');
 
-        if (str_contains($contentType, 'text/html') && ! $this->option('output-html') && ! $this->config->shouldShowHtmlBody()) {
-            $this->line('Use --output-html to see the full response body.');
+        if (str_contains($contentType, 'text/html')) {
+            if (! $this->option('output-html')) {
+                if (! $this->config->shouldShowHtmlBody()) {
+                    $this->line('Use --output-html to see the full response body.');
 
-            return;
+                    return;
+                }
+            }
         }
 
         $this->line($body);

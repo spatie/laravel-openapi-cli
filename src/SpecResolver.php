@@ -81,8 +81,10 @@ class SpecResolver
 
         // 3. Content sniffing
         $trimmed = ltrim($content);
-        if ($trimmed !== '' && ($trimmed[0] === '{' || $trimmed[0] === '[')) {
-            return 'json';
+        if ($trimmed !== '') {
+            if ($trimmed[0] === '{' || $trimmed[0] === '[') {
+                return 'json';
+            }
         }
 
         // 4. Default to YAML

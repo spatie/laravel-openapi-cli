@@ -75,10 +75,12 @@ class HumanReadableFormatter
 
         $totalWidth = $keyWidth + $valueWidth + 7; // "| " + " | " + " |"
 
-        if ($this->terminalWidth !== null && $totalWidth > $this->terminalWidth) {
-            return collect($keys)
-                ->map(fn (string $key, int $i) => $key.': '.$values[$i])
-                ->implode("\n");
+        if ($this->terminalWidth !== null) {
+            if ($totalWidth > $this->terminalWidth) {
+                return collect($keys)
+                    ->map(fn (string $key, int $i) => $key.': '.$values[$i])
+                    ->implode("\n");
+            }
         }
 
         return collect($keys)
@@ -140,8 +142,10 @@ class HumanReadableFormatter
 
         $totalWidth = $columnWidths->sum() + 3 * ($columnWidths->count() - 1) + 4;
 
-        if ($this->terminalWidth !== null && $totalWidth > $this->terminalWidth) {
-            return $this->formatVerticalCards($headers, $rows);
+        if ($this->terminalWidth !== null) {
+            if ($totalWidth > $this->terminalWidth) {
+                return $this->formatVerticalCards($headers, $rows);
+            }
         }
 
         $formatRow = fn ($cells) => '| '.$cells->map(fn (string $cell, int $i) => $this->padCell($cell, $columnWidths[$i]))->implode(' | ').' |';
@@ -231,19 +235,9 @@ class HumanReadableFormatter
         // Convert snake_case/kebab-case to spaces
         $result = str_replace(['_', '-'], ' ', $result);
 
-        // Title case each word, handling abbreviations
-        $words = explode(' ', $result);
-        $titleCased = array_map(function (string $word) use ($abbreviations) {
-            $lower = strtolower($word);
-
-            if (isset($abbreviations[$lower])) {
-                return $abbreviations[$lower];
-            }
-
-            return ucfirst($lower);
-        }, $words);
-
-        return implode(' ', $titleCased);
+        return collect(explode(' ', $result))
+            ->map(fn (string $word) => $abbreviations[strtolower($word)] ?? ucfirst(strtolower($word)))
+            ->implode(' ');
     }
 
     private function isAssociative(array $array): bool
@@ -257,39 +251,26 @@ class HumanReadableFormatter
 
     private function isScalarList(array $data): bool
     {
-        foreach ($data as $item) {
-            if (is_array($item)) {
-                return false;
-            }
-        }
-
-        return true;
+        return collect($data)->every(fn ($item) => ! is_array($item));
     }
 
     private function isHomogeneousObjectList(array $data): bool
     {
-        if (count($data) === 0) {
+        $items = collect($data);
+
+        if ($items->isEmpty()) {
             return false;
         }
 
-        $firstKeys = null;
-
-        foreach ($data as $item) {
-            if (! is_array($item) || ! $this->isAssociative($item)) {
-                return false;
-            }
-
-            $keys = array_keys($item);
-            sort($keys);
-
-            if ($firstKeys === null) {
-                $firstKeys = $keys;
-            } elseif ($keys !== $firstKeys) {
-                return false;
-            }
+        if (! $items->every(fn ($item) => is_array($item) && $this->isAssociative($item))) {
+            return false;
         }
 
-        return true;
+        $firstKeys = collect(array_keys($data[0]))->sort()->values();
+
+        return $items->every(
+            fn (array $item) => collect(array_keys($item))->sort()->values()->all() === $firstKeys->all()
+        );
     }
 
     private function padCell(string $value, int $width): string

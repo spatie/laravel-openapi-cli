@@ -17,11 +17,13 @@ class RefResolver
     {
         if (is_array($data)) {
             // Check if this is a $ref object
-            if (isset($data['$ref']) && is_string($data['$ref'])) {
-                $resolved = $this->resolveReference($data['$ref']);
+            if (isset($data['$ref'])) {
+                if (is_string($data['$ref'])) {
+                    $resolved = $this->resolveReference($data['$ref']);
 
-                // Recursively resolve the resolved reference in case it contains more refs
-                return $this->resolve($resolved);
+                    // Recursively resolve the resolved reference in case it contains more refs
+                    return $this->resolve($resolved);
+                }
             }
 
             // Recursively resolve all array elements
