@@ -322,21 +322,21 @@ it('outputs raw body for non-JSON responses even with --minify flag', function (
         ->assertSuccessful();
 });
 
-// --include flag tests
+// --headers flag tests
 
-it('shows HTTP status line when --include flag is provided', function () {
+it('shows HTTP status line when --headers flag is provided', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"name":"Project 1"}', 200),
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('HTTP/1.1 200 OK')
         ->assertSuccessful();
 });
 
-it('shows response headers when --include flag is provided', function () {
+it('shows response headers when --headers flag is provided', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"name":"Project 1"}', 200, [
             'Content-Type' => 'application/json',
@@ -346,13 +346,13 @@ it('shows response headers when --include flag is provided', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('Content-Type: application/json')
         ->expectsOutputToContain('X-Custom-Header: custom-value')
         ->assertSuccessful();
 });
 
-it('separates headers from body with blank line when --include flag is provided', function () {
+it('separates headers from body with blank line when --headers flag is provided', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"name":"Project 1"}', 200, [
             'Content-Type' => 'application/json',
@@ -361,13 +361,13 @@ it('separates headers from body with blank line when --include flag is provided'
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('Content-Type: application/json')
         ->expectsOutputToContain('"name": "Project 1"')
         ->assertSuccessful();
 });
 
-it('shows headers before body when --include flag is provided', function () {
+it('shows headers before body when --headers flag is provided', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"id":123}', 200, [
             'X-Request-ID' => 'abc-123',
@@ -376,25 +376,25 @@ it('shows headers before body when --include flag is provided', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('X-Request-ID: abc-123')
         ->expectsOutputToContain('"id": 123')
         ->assertSuccessful();
 });
 
-it('shows headers with different status codes when --include flag is provided', function () {
+it('shows headers with different status codes when --headers flag is provided', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"error":"Not Found"}', 404),
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('HTTP/1.1 404 Not Found')
         ->assertFailed();
 });
 
-it('combines --include and --minify flags correctly', function () {
+it('combines --headers and --minify flags correctly', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200, [
             'Content-Type' => 'application/json',
@@ -403,7 +403,7 @@ it('combines --include and --minify flags correctly', function () {
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true, '--minify' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true, '--minify' => true])
         ->expectsOutputToContain('HTTP/1.1 200 OK')
         ->expectsOutputToContain('Content-Type: application/json')
         ->expectsOutputToContain('{"name":"Project 1","id":123}')
@@ -428,14 +428,14 @@ it('handles 204 No Content responses gracefully and exits successfully', functio
     });
 });
 
-it('shows 204 status in headers when --include flag is provided', function () {
+it('shows 204 status in headers when --headers flag is provided', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('', 204),
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('HTTP/1.1 204 No Content')
         ->expectsOutputToContain('No content (204)')
         ->assertSuccessful();
@@ -471,7 +471,7 @@ it('displays array of objects as table in human-readable format', function () {
         ->assertSuccessful();
 });
 
-it('combines --human with --include flag showing headers then human body', function () {
+it('combines --human with --headers flag showing headers then human body', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200, [
             'Content-Type' => 'application/json',
@@ -480,7 +480,7 @@ it('combines --human with --include flag showing headers then human body', funct
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--human' => true, '--include' => true])
+    $this->artisan('test-api:get-projects', ['--human' => true, '--headers' => true])
         ->expectsOutputToContain('HTTP/1.1 200 OK')
         ->expectsOutputToContain('Content-Type: application/json')
         ->expectsOutputToContain('Name: Project 1')

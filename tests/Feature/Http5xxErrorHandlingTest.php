@@ -134,7 +134,7 @@ it('displays 5xx error response body as minified JSON with --minify flag', funct
         ->expectsOutputToContain('{"error":"Internal Server Error","code":"DB_CONNECTION_FAILED"}');
 });
 
-it('displays 5xx error response headers with --include flag', function () {
+it('displays 5xx error response headers with --headers flag', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response(
             json_encode(['error' => 'Service Unavailable']),
@@ -145,7 +145,7 @@ it('displays 5xx error response headers with --include flag', function () {
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true])
         ->assertFailed()
         ->expectsOutputToContain('HTTP 503 Error')
         ->expectsOutputToContain('HTTP/1.1 503 Service Unavailable')

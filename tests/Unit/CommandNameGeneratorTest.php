@@ -98,8 +98,8 @@ it('handles simple query parameter name', function () {
     expect(CommandNameGenerator::queryParamToOptionName('sort'))->toBe('sort');
 });
 
-it('renames include to include-param to avoid conflict', function () {
-    expect(CommandNameGenerator::queryParamToOptionName('include'))->toBe('include-param');
+it('passes through include query parameter without renaming', function () {
+    expect(CommandNameGenerator::queryParamToOptionName('include'))->toBe('include');
 });
 
 it('handles snake_case query parameter', function () {

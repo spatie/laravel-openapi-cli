@@ -118,7 +118,7 @@ it('combines query parameters with path parameters', function () {
 
     $this->artisan('test-api:get-projects-id', [
         '--id' => '123',
-        '--include-param' => 'members',
+        '--include' => 'members',
     ])->assertSuccessful();
 
     Http::assertSent(function ($request) {

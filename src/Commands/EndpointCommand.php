@@ -216,7 +216,7 @@ class EndpointCommand extends Command
         $parts[] = '{--field=* : Form field in key=value format (can be used multiple times)}';
         $parts[] = '{--input= : Raw JSON input}';
         $parts[] = '{--minify : Minify JSON output}';
-        $parts[] = '{--include : Include response headers in output}';
+        $parts[] = '{--H|headers : Include response headers in output}';
         $parts[] = '{--human : Display response in human-readable format}';
 
         $this->signature = implode("\n            ", $parts);
@@ -312,7 +312,7 @@ class EndpointCommand extends Command
             enabled: $this->output->isDecorated(),
         );
 
-        if ($this->option('include')) {
+        if ($this->option('headers')) {
             $statusCode = $response->status();
             $reasonPhrase = $response->reason();
             $this->line("HTTP/1.1 {$statusCode} {$reasonPhrase}");

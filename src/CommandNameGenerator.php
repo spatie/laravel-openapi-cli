@@ -4,10 +4,6 @@ namespace Spatie\OpenApiCli;
 
 class CommandNameGenerator
 {
-    private const RESERVED_OPTION_NAMES = [
-        'include',
-    ];
-
     public static function fromPath(string $method, string $path): string
     {
         $method = strtolower($method);
@@ -93,13 +89,6 @@ class CommandNameGenerator
         $name = preg_replace('/\[([^\]]+)\]/', '-$1', $paramName);
 
         // Convert to kebab-case
-        $name = self::parameterToOptionName($name);
-
-        // Avoid conflicts with reserved option names
-        if (in_array($name, self::RESERVED_OPTION_NAMES)) {
-            return $name.'-param';
-        }
-
-        return $name;
+        return self::parameterToOptionName($name);
     }
 }

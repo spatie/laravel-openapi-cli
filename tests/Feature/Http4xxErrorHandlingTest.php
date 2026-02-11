@@ -140,7 +140,7 @@ it('displays 4xx error response body as minified JSON with --minify flag', funct
         ->expectsOutputToContain('{"error":"Bad Request","code":"INVALID_INPUT"}');
 });
 
-it('displays 4xx error response headers with --include flag', function () {
+it('displays 4xx error response headers with --headers flag', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response(
             json_encode(['error' => 'Unauthorized']),
@@ -151,7 +151,7 @@ it('displays 4xx error response headers with --include flag', function () {
 
     OpenApiCli::register($this->specPath, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--include' => true])
+    $this->artisan('test-api:get-projects', ['--headers' => true])
         ->assertFailed()
         ->expectsOutputToContain('HTTP 401 Error')
         ->expectsOutputToContain('HTTP/1.1 401 Unauthorized')

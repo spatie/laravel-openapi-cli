@@ -21,7 +21,7 @@ php artisan bookstore:get-books-reviews --book-id=42
 php artisan bookstore:post-books --field title="The Great Gatsby" --field author_id=1
 
 # Include response headers
-php artisan bookstore:get-books --include
+php artisan bookstore:get-books --headers
 ```
 
 ## Support us
@@ -154,7 +154,7 @@ Query parameters defined in the spec become optional `--options`:
 php artisan bookstore:get-books --genre=fiction --limit=10
 ```
 
-Query parameters named `include` are automatically renamed to `--include-param` to avoid conflicting with the built-in `--include` flag.
+Bracket notation is converted to kebab-case (e.g. `filter[id]` becomes `--filter-id`).
 
 ### Sending data
 
@@ -300,7 +300,7 @@ php artisan bookstore:get-books --human
 # Total: 1
 ```
 
-The `--human` flag converts JSON responses into readable markdown-style output: tables for arrays of objects, key-value lines for simple objects, and section headings for wrapper patterns like `{"data": [...], "meta": {...}}`. Takes precedence over `--minify` and works with `--include`.
+The `--human` flag converts JSON responses into readable markdown-style output: tables for arrays of objects, key-value lines for simple objects, and section headings for wrapper patterns like `{"data": [...], "meta": {...}}`. Takes precedence over `--minify` and works with `--headers`.
 
 #### Minified output
 
@@ -312,7 +312,7 @@ php artisan bookstore:get-books --minify
 #### Response headers
 
 ```bash
-php artisan bookstore:get-books --include
+php artisan bookstore:get-books --headers
 # HTTP/1.1 200 OK
 # Content-Type: application/json
 # X-RateLimit-Remaining: 99
@@ -387,7 +387,7 @@ Every endpoint command supports these universal options:
 | `--field=key=value` | Send a form field (repeatable) |
 | `--input=JSON` | Send raw JSON body |
 | `--minify` | Minify JSON output |
-| `--include` | Include response headers in output |
+| `-H`, `--headers` | Include response headers in output |
 | `--human` | Display response in human-readable format |
 
 Path and query parameter options are generated from the spec and shown in each command's `--help` output.
