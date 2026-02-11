@@ -153,7 +153,7 @@ it('displays 5xx error response headers with --headers flag', function () {
         ->expectsOutputToContain('X-Request-ID');
 });
 
-it('displays non-JSON 5xx error responses with raw body and content-type notice', function () {
+it('displays non-JSON 5xx error responses with suppressed HTML body and hint', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response(
             '<html><body><h1>500 Internal Server Error</h1><p>Something went wrong</p></body></html>',
@@ -167,8 +167,9 @@ it('displays non-JSON 5xx error responses with raw body and content-type notice'
     $this->artisan('test-api:get-projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 500 Error')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html)')
-        ->expectsOutputToContain('<h1>500 Internal Server Error</h1>');
+        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 500')
+        ->expectsOutputToContain('Use --output-html to see the full response body.')
+        ->doesntExpectOutputToContain('<h1>500 Internal Server Error</h1>');
 });
 
 it('exits with non-zero code on 5xx errors', function () {

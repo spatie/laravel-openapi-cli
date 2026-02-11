@@ -116,7 +116,16 @@ class EndpointCommand extends Command
         }
 
         // Execute HTTP request
-        $http = ! empty($files) ? Http::withOptions([]) : Http::asJson();
+        $redirects = $this->config->shouldFollowRedirects();
+        $http = ! empty($files)
+            ? Http::withOptions(['allow_redirects' => $redirects])
+            : Http::asJson()->withOptions(['allow_redirects' => $redirects]);
+
+        $acceptTypes = $this->getAcceptContentTypes();
+        if ($acceptTypes !== null) {
+            $http = $http->withHeaders(['Accept' => $acceptTypes]);
+        }
+
         $http = $this->applyAuthentication($http);
         $method = strtoupper($this->method);
 
@@ -224,6 +233,7 @@ class EndpointCommand extends Command
         $parts[] = '{--minify : Minify JSON output}';
         $parts[] = '{--H|headers : Include response headers in output}';
         $parts[] = '{--human : Display response in human-readable format}';
+        $parts[] = '{--output-html : Show the full response body when content-type is text/html}';
 
         $this->signature = implode("\n            ", $parts);
     }
@@ -270,6 +280,20 @@ class EndpointCommand extends Command
         }
 
         return $http;
+    }
+
+    private function getAcceptContentTypes(): ?string
+    {
+        $responses = $this->operationData['responses'] ?? [];
+        $contentTypes = [];
+
+        foreach ($responses as $response) {
+            foreach (array_keys($response['content'] ?? []) as $contentType) {
+                $contentTypes[$contentType] = true;
+            }
+        }
+
+        return $contentTypes !== [] ? implode(', ', array_keys($contentTypes)) : null;
     }
 
     /**
@@ -362,9 +386,16 @@ class EndpointCommand extends Command
             $this->line($highlighter->highlightJson($formatted));
         } else {
             $contentType = $response->header('Content-Type') ?: 'unknown';
-            $this->line("Response is not JSON (content-type: {$contentType})");
+            $statusCode = $response->status();
+            $contentLength = $response->header('Content-Length') ?: strlen($body);
+            $this->line("Response is not JSON (content-type: {$contentType}, status: {$statusCode}, content-length: {$contentLength})");
             $this->line('');
-            $this->line($body);
+
+            if (str_contains($contentType, 'text/html') && ! $this->option('output-html') && ! $this->config->shouldShowHtmlBody()) {
+                $this->line('Use --output-html to see the full response body.');
+            } else {
+                $this->line($body);
+            }
         }
     }
 }

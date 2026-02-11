@@ -322,6 +322,32 @@ php artisan bookstore:get-books --headers
 # }
 ```
 
+#### HTML responses
+
+When an API returns HTML (e.g., an error page), the body is hidden by default to avoid flooding the terminal. You'll see a hint instead:
+
+```
+Response is not JSON (content-type: text/html, status: 500, content-length: 1234)
+
+Use --output-html to see the full response body.
+```
+
+Pass `--output-html` to show the body:
+
+```bash
+php artisan bookstore:get-books --output-html
+```
+
+To always show HTML bodies for a specific registration, use the `showHtmlBody()` config method:
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
+    ->baseUrl('https://api.example.com')
+    ->showHtmlBody();
+```
+
+Non-HTML non-JSON responses (e.g., `text/plain`) are always shown in full.
+
 #### Syntax highlighting
 
 JSON and human-readable output are syntax-highlighted by default when running in a terminal. JSON output gets keyword/value coloring via [tempest/highlight](https://github.com/tempestphp/highlight), and human-readable output gets colored headings, keys, and table formatting.
@@ -334,6 +360,16 @@ php artisan bookstore:get-books --human --no-ansi
 ```
 
 Highlighting is automatically disabled when output is not a TTY (e.g. piped to a file or another command).
+
+### Redirect handling
+
+By default, HTTP redirects are **not followed**. This means a `301` or `302` response is returned as-is, so you can see exactly what the API responds with. To opt in to following redirects:
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
+    ->baseUrl('https://api.example.com')
+    ->followRedirects();
+```
 
 ### Operation ID mode
 
@@ -349,7 +385,7 @@ With `operationId: listBooks` in the spec, the command becomes `api:list-books` 
 
 ### Error handling
 
-- **4xx/5xx errors**: Displays the status code and response body. JSON responses are pretty-printed (or minified with `--minify`). Non-JSON responses show the raw body with a content-type notice.
+- **4xx/5xx errors**: Displays the status code and response body. JSON responses are pretty-printed (or minified with `--minify`). HTML responses suppress the body by default (use `--output-html` to see it). Other non-JSON responses show the raw body with a content-type notice.
 - **Network errors**: Shows connection failure details.
 - **Missing path parameters**: Tells you which `--option` is required.
 - **Invalid JSON input**: Shows the parse error.
@@ -411,6 +447,7 @@ Every endpoint command supports these universal options:
 | `--minify` | Minify JSON output |
 | `-H`, `--headers` | Include response headers in output |
 | `--human` | Display response in human-readable format |
+| `--output-html` | Show the full response body when content-type is text/html |
 
 Path and query parameter options are generated from the spec and shown in each command's `--help` output.
 

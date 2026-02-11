@@ -31,6 +31,10 @@ class CommandConfiguration
 
     protected bool $noCache = false;
 
+    protected bool $showHtmlBody = false;
+
+    protected bool $followRedirects = false;
+
     public function __construct(
         protected string $specPath,
         protected string $namespace = ''
@@ -181,5 +185,29 @@ class CommandConfiguration
     public function shouldSkipCache(): bool
     {
         return $this->noCache;
+    }
+
+    public function showHtmlBody(): self
+    {
+        $this->showHtmlBody = true;
+
+        return $this;
+    }
+
+    public function shouldShowHtmlBody(): bool
+    {
+        return $this->showHtmlBody;
+    }
+
+    public function followRedirects(): self
+    {
+        $this->followRedirects = true;
+
+        return $this;
+    }
+
+    public function shouldFollowRedirects(): bool
+    {
+        return $this->followRedirects;
     }
 }
