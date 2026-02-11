@@ -33,6 +33,10 @@ class CommandConfiguration
 
     protected bool $showHtmlBody = false;
 
+    protected bool $jsonOutput = false;
+
+    protected bool $yamlOutput = false;
+
     protected bool $followRedirects = false;
 
     public function __construct(
@@ -197,6 +201,30 @@ class CommandConfiguration
     public function shouldShowHtmlBody(): bool
     {
         return $this->showHtmlBody;
+    }
+
+    public function jsonOutput(): self
+    {
+        $this->jsonOutput = true;
+
+        return $this;
+    }
+
+    public function shouldOutputJson(): bool
+    {
+        return $this->jsonOutput;
+    }
+
+    public function yamlOutput(): self
+    {
+        $this->yamlOutput = true;
+
+        return $this;
+    }
+
+    public function shouldOutputYaml(): bool
+    {
+        return $this->yamlOutput;
     }
 
     public function followRedirects(): self

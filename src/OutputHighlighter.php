@@ -22,6 +22,15 @@ class OutputHighlighter
         return $this->getHighlighter()->parse($json, 'json');
     }
 
+    public function highlightYaml(string $yaml): string
+    {
+        if (! $this->enabled) {
+            return $yaml;
+        }
+
+        return $this->getHighlighter()->parse($yaml, 'yaml');
+    }
+
     public function highlightHumanReadable(string $text): string
     {
         if (! $this->enabled) {

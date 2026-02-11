@@ -86,7 +86,7 @@ it('executes GET request to simple endpoint', function () {
 }
 JSON;
 
-    $this->artisan('test-api:get-projects')
+    $this->artisan('test-api:get-projects', ['--json' => true])
         ->assertSuccessful()
         ->expectsOutput($expected);
 
@@ -110,7 +110,7 @@ it('executes GET request with path parameters via options', function () {
 }
 JSON;
 
-    $this->artisan('test-api:get-projects-id', ['--id' => '123'])
+    $this->artisan('test-api:get-projects-id', ['--id' => '123', '--json' => true])
         ->assertSuccessful()
         ->expectsOutput($expected);
 

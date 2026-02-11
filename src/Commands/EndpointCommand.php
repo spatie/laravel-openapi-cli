@@ -13,6 +13,8 @@ use Spatie\OpenApiCli\HumanReadableFormatter;
 use Spatie\OpenApiCli\OpenApiParser;
 use Spatie\OpenApiCli\OutputHighlighter;
 use Spatie\OpenApiCli\SpecResolver;
+use Symfony\Component\Console\Terminal;
+use Symfony\Component\Yaml\Yaml;
 
 class EndpointCommand extends Command
 {
@@ -230,9 +232,10 @@ class EndpointCommand extends Command
         // Universal options
         $parts[] = '{--field=* : Form field in key=value format (can be used multiple times)}';
         $parts[] = '{--input= : Raw JSON input}';
-        $parts[] = '{--minify : Minify JSON output}';
+        $parts[] = '{--json : Output raw JSON instead of human-readable format}';
+        $parts[] = '{--yaml : Output as YAML}';
+        $parts[] = '{--minify : Minify JSON output (implies --json)}';
         $parts[] = '{--H|headers : Include response headers in output}';
-        $parts[] = '{--human : Display response in human-readable format}';
         $parts[] = '{--output-html : Show the full response body when content-type is text/html}';
 
         $this->signature = implode("\n            ", $parts);
@@ -366,24 +369,31 @@ class EndpointCommand extends Command
         $decoded = json_decode($body, true);
 
         if (json_last_error() === JSON_ERROR_NONE && $decoded !== null) {
-            if ($this->option('human')) {
-                $formatter = new HumanReadableFormatter;
+            $useYaml = $this->option('yaml') || $this->config->shouldOutputYaml();
+            $useJson = $this->option('json') || $this->option('minify') || $this->config->shouldOutputJson();
+
+            if ($useYaml && ! $this->option('json') && ! $this->option('minify')) {
+                $formatted = $highlighter->highlightYaml(rtrim(Yaml::dump($decoded, 10, 2)));
+
+                foreach (explode("\n", $formatted) as $line) {
+                    $this->line($line);
+                }
+            } elseif ($useJson || $useYaml) {
+                if ($this->option('minify')) {
+                    $formatted = json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                } else {
+                    $formatted = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+
+                $this->line($highlighter->highlightJson($formatted));
+            } else {
+                $formatter = new HumanReadableFormatter((new Terminal)->getWidth());
                 $formatted = $highlighter->highlightHumanReadable($formatter->format($decoded));
 
                 foreach (explode("\n", $formatted) as $line) {
                     $this->line($line);
                 }
-
-                return;
             }
-
-            if ($this->option('minify')) {
-                $formatted = json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            } else {
-                $formatted = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            }
-
-            $this->line($highlighter->highlightJson($formatted));
         } else {
             $contentType = $response->header('Content-Type') ?: 'unknown';
             $statusCode = $response->status();

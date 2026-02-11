@@ -6,7 +6,9 @@ class HumanReadableFormatter
 {
     private const MAX_DEPTH = 4;
 
-    private const MAX_CELL_WIDTH = 40;
+    public function __construct(
+        private ?int $terminalWidth = null,
+    ) {}
 
     public function format(mixed $data, int $depth = 0): string
     {
@@ -61,10 +63,42 @@ class HumanReadableFormatter
 
     private function formatSimpleObject(array $data): string
     {
-        $lines = [];
+        $keys = [];
+        $values = [];
 
         foreach ($data as $key => $value) {
-            $lines[] = $this->humanizeKey((string) $key).': '.$this->formatScalar($value);
+            $keys[] = $this->humanizeKey((string) $key);
+            $values[] = $this->formatScalar($value);
+        }
+
+        return $this->formatKeyValueTable($keys, $values);
+    }
+
+    /**
+     * @param  array<int, string>  $keys
+     * @param  array<int, string>  $values
+     */
+    private function formatKeyValueTable(array $keys, array $values): string
+    {
+        $keyWidth = max(array_map('mb_strlen', $keys));
+        $valueWidth = max(array_map('mb_strlen', $values));
+
+        $totalWidth = $keyWidth + $valueWidth + 7; // "| " + " | " + " |"
+
+        if ($this->terminalWidth !== null && $totalWidth > $this->terminalWidth) {
+            $lines = [];
+
+            foreach ($keys as $i => $key) {
+                $lines[] = $key.': '.$values[$i];
+            }
+
+            return implode("\n", $lines);
+        }
+
+        $lines = [];
+
+        foreach ($keys as $i => $key) {
+            $lines[] = '| '.$this->padCell($key, $keyWidth).' | '.$this->padCell($values[$i], $valueWidth).' |';
         }
 
         return implode("\n", $lines);
@@ -152,8 +186,10 @@ class HumanReadableFormatter
             }
         }
 
-        foreach ($columnWidths as $i => $width) {
-            $columnWidths[$i] = min($width, self::MAX_CELL_WIDTH);
+        $totalWidth = array_sum($columnWidths) + 3 * (count($columnWidths) - 1) + 4;
+
+        if ($this->terminalWidth !== null && $totalWidth > $this->terminalWidth) {
+            return $this->formatVerticalCards($keys, $headers, $rows);
         }
 
         $lines = [];
@@ -185,6 +221,51 @@ class HumanReadableFormatter
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * @param  array<int, string>  $keys
+     * @param  array<int, string>  $headers
+     * @param  array<int, array<int, string>>  $rows
+     */
+    private function formatVerticalCards(array $keys, array $headers, array $rows): string
+    {
+        $keyWidth = max(array_map('mb_strlen', $headers));
+
+        $valueWidth = 0;
+
+        foreach ($rows as $row) {
+            foreach ($row as $cell) {
+                $valueWidth = max($valueWidth, mb_strlen($cell));
+            }
+        }
+
+        $totalWidth = $keyWidth + $valueWidth + 7;
+        $useTable = $this->terminalWidth === null || $totalWidth <= $this->terminalWidth;
+
+        $cards = [];
+
+        foreach ($rows as $row) {
+            $lines = [];
+
+            foreach (array_values($row) as $i => $cell) {
+                if ($useTable) {
+                    $lines[] = '| '.$this->padCell($headers[$i], $keyWidth).' | '.$this->padCell($cell, $valueWidth).' |';
+                } else {
+                    $lines[] = $headers[$i].': '.$cell;
+                }
+            }
+
+            $cards[] = implode("\n", $lines);
+        }
+
+        if ($useTable) {
+            $separator = str_repeat('-', $totalWidth);
+
+            return implode("\n".$separator."\n", $cards);
+        }
+
+        return implode("\n\n", $cards);
     }
 
     private function formatHeterogeneousList(array $data, int $depth): string
@@ -313,10 +394,6 @@ class HumanReadableFormatter
 
     private function padCell(string $value, int $width): string
     {
-        if (mb_strlen($value) > $width) {
-            return mb_substr($value, 0, $width - 3).'...';
-        }
-
         return str_pad($value, $width);
     }
 }

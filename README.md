@@ -274,21 +274,10 @@ The closure is called fresh on each request.
 
 ### Output formatting
 
-#### Pretty-print (default)
+#### Human-readable (default)
 
 ```bash
 php artisan bookstore:get-books
-# {
-#     "data": [
-#         { "id": 1, "title": "The Great Gatsby" }
-#     ]
-# }
-```
-
-#### Human-readable output
-
-```bash
-php artisan bookstore:get-books --human
 # # Data
 #
 # | ID | Title             |
@@ -300,7 +289,32 @@ php artisan bookstore:get-books --human
 # Total: 1
 ```
 
-The `--human` flag converts JSON responses into readable markdown-style output: tables for arrays of objects, key-value lines for simple objects, and section headings for wrapper patterns like `{"data": [...], "meta": {...}}`. Takes precedence over `--minify` and works with `--headers`.
+JSON responses are automatically converted into readable markdown-style output: tables for arrays of objects, key-value lines for simple objects, and section headings for wrapper patterns like `{"data": [...], "meta": {...}}`.
+
+#### JSON output
+
+```bash
+php artisan bookstore:get-books --json
+# {
+#     "data": [
+#         { "id": 1, "title": "The Great Gatsby" }
+#     ]
+# }
+```
+
+The `--json` flag outputs raw JSON (pretty-printed by default).
+
+#### YAML output
+
+```bash
+php artisan bookstore:get-books --yaml
+# data:
+#   -
+#     id: 1
+#     title: 'The Great Gatsby'
+```
+
+The `--yaml` flag converts JSON responses to YAML. If `--json` or `--minify` is also passed, those take priority.
 
 #### Minified output
 
@@ -308,6 +322,32 @@ The `--human` flag converts JSON responses into readable markdown-style output: 
 php artisan bookstore:get-books --minify
 # {"data":[{"id":1,"title":"The Great Gatsby"}]}
 ```
+
+The `--minify` flag implies `--json` — no need to pass both.
+
+#### YAML as default
+
+If you prefer YAML output as the default for a specific registration, use the `yamlOutput()` config method:
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
+    ->baseUrl('https://api.example.com')
+    ->yamlOutput();
+```
+
+With `yamlOutput()`, commands output YAML by default. The `--json` and `--minify` flags override this and produce JSON output instead.
+
+#### JSON as default
+
+If you prefer JSON output as the default for a specific registration, use the `jsonOutput()` config method:
+
+```php
+OpenApiCli::register(base_path('openapi/api.yaml'), 'api')
+    ->baseUrl('https://api.example.com')
+    ->jsonOutput();
+```
+
+With `jsonOutput()`, commands output pretty-printed JSON by default. The `--json` and `--minify` flags still work as expected.
 
 #### Response headers
 
@@ -317,9 +357,11 @@ php artisan bookstore:get-books --headers
 # Content-Type: application/json
 # X-RateLimit-Remaining: 99
 #
-# {
-#     "data": [...]
-# }
+# # Data
+#
+# | ID | Title             |
+# |----|-------------------|
+# | 1  | The Great Gatsby  |
 ```
 
 #### HTML responses
@@ -356,7 +398,7 @@ To disable highlighting (e.g. when piping output), use the built-in `--no-ansi` 
 
 ```bash
 php artisan bookstore:get-books --no-ansi
-php artisan bookstore:get-books --human --no-ansi
+php artisan bookstore:get-books --json --no-ansi
 ```
 
 Highlighting is automatically disabled when output is not a TTY (e.g. piped to a file or another command).
@@ -385,7 +427,7 @@ With `operationId: listBooks` in the spec, the command becomes `api:list-books` 
 
 ### Error handling
 
-- **4xx/5xx errors**: Displays the status code and response body. JSON responses are pretty-printed (or minified with `--minify`). HTML responses suppress the body by default (use `--output-html` to see it). Other non-JSON responses show the raw body with a content-type notice.
+- **4xx/5xx errors**: Displays the status code and response body in human-readable format by default (or JSON with `--json`, minified with `--minify`). HTML responses suppress the body by default (use `--output-html` to see it). Other non-JSON responses show the raw body with a content-type notice.
 - **Network errors**: Shows connection failure details.
 - **Missing path parameters**: Tells you which `--option` is required.
 - **Invalid JSON input**: Shows the parse error.
@@ -444,9 +486,10 @@ Every endpoint command supports these universal options:
 |--------|-------------|
 | `--field=key=value` | Send a form field (repeatable) |
 | `--input=JSON` | Send raw JSON body |
-| `--minify` | Minify JSON output |
+| `--json` | Output raw JSON instead of human-readable format |
+| `--yaml` | Output as YAML |
+| `--minify` | Minify JSON output (implies `--json`) |
 | `-H`, `--headers` | Include response headers in output |
-| `--human` | Display response in human-readable format |
 | `--output-html` | Show the full response body when content-type is text/html |
 
 Path and query parameter options are generated from the spec and shown in each command's `--help` output.

@@ -60,13 +60,13 @@ it('humanizes compound keys with abbreviations', function () {
 
 // Simple objects (all scalar values)
 
-it('formats simple objects as key-value lines', function () {
+it('formats simple objects as headerless table', function () {
     $data = ['name' => 'John', 'email' => 'john@example.com', 'active' => true];
 
     $expected = <<<'TEXT'
-Name: John
-Email: john@example.com
-Active: Yes
+| Name   | John             |
+| Email  | john@example.com |
+| Active | Yes              |
 TEXT;
 
     expect($this->formatter->format($data))->toBe($expected);
@@ -76,8 +76,8 @@ it('formats simple object with null values', function () {
     $data = ['name' => 'John', 'nickname' => null];
 
     $expected = <<<'TEXT'
-Name: John
-Nickname: (empty)
+| Name     | John    |
+| Nickname | (empty) |
 TEXT;
 
     expect($this->formatter->format($data))->toBe($expected);
@@ -154,14 +154,16 @@ it('formats table with proper column alignment', function () {
     expect(count($lines))->toBe(4);
 });
 
-it('truncates long cell values in tables', function () {
+it('displays full cell values without truncation', function () {
+    $longValue = str_repeat('A', 50);
     $data = [
-        ['id' => 1, 'description' => str_repeat('A', 50)],
+        ['id' => 1, 'description' => $longValue],
     ];
 
     $result = $this->formatter->format($data);
 
-    expect($result)->toContain('...');
+    expect($result)->toContain($longValue)
+        ->not->toContain('...');
 });
 
 it('formats nested values in table cells as compact JSON', function () {
@@ -194,7 +196,7 @@ it('formats wrapper pattern with data and meta sections', function () {
         ->toContain('| ID')
         ->toContain('| Foo')
         ->toContain('# Meta')
-        ->toContain('Total: 2');
+        ->toContain('| Total | 2 |');
 });
 
 // Nested objects (heading hierarchy)
@@ -215,7 +217,7 @@ it('formats nested objects with heading hierarchy', function () {
         ->toContain('## Name')
         ->toContain('Test')
         ->toContain('## Metadata')
-        ->toContain('Created: 2024-01-01');
+        ->toContain('| Created | 2024-01-01 |');
 });
 
 // Depth limit
@@ -248,9 +250,9 @@ it('formats heterogeneous object arrays as numbered items', function () {
 
     expect($result)->toContain('# Item 1')
         ->toContain('# Item 2')
-        ->toContain('Name: Foo')
-        ->toContain('Name: Bar')
-        ->toContain('Extra: Yes');
+        ->toContain('| Name | Foo')
+        ->toContain('| Name  | Bar')
+        ->toContain('| Extra | Yes');
 });
 
 // Mixed nested structures
@@ -269,8 +271,8 @@ it('formats object with mix of scalar and nested values', function () {
     expect($result)->toContain('# Name')
         ->toContain('Project')
         ->toContain('# Settings')
-        ->toContain('Debug: Yes')
-        ->toContain('Timeout: 30');
+        ->toContain('| Debug   | Yes |')
+        ->toContain('| Timeout | 30  |');
 });
 
 it('formats single-item array as table', function () {
@@ -284,4 +286,87 @@ it('formats single-item array as table', function () {
         ->toContain('| Name')
         ->toContain('| 1')
         ->toContain('| Only');
+});
+
+// Terminal-aware table rendering
+
+it('falls back to vertical cards when table exceeds terminal width', function () {
+    $formatter = new HumanReadableFormatter(terminalWidth: 30);
+
+    $data = [
+        ['id' => 1, 'name' => 'Foo', 'description' => 'A long description that makes the table wide'],
+        ['id' => 2, 'name' => 'Bar', 'description' => 'Another long description here'],
+    ];
+
+    $result = $formatter->format($data);
+
+    // Both table and card formats exceed 30 chars, so falls back to Key: Value
+    expect($result)->toContain('ID: 1')
+        ->toContain('Name: Foo')
+        ->toContain('Description: A long description that makes the table wide')
+        ->toContain('ID: 2')
+        ->toContain('Name: Bar')
+        ->not->toContain('|');
+});
+
+it('renders vertical cards as headerless tables with dashed separators', function () {
+    // 4-column table needs ~39 chars, but each card only needs ~27
+    $formatter = new HumanReadableFormatter(terminalWidth: 35);
+
+    $data = [
+        ['id' => 1, 'name' => 'Foo', 'email' => 'foo@example.com', 'role' => 'admin'],
+        ['id' => 2, 'name' => 'Bar', 'email' => 'bar@example.com', 'role' => 'user'],
+    ];
+
+    $result = $formatter->format($data);
+
+    expect($result)->toContain('| ID')
+        ->toContain('| Name')
+        ->toContain('| Foo')
+        ->toContain('| Bar');
+
+    // Cards are separated by a dashed line
+    $lines = explode("\n", $result);
+    $separators = array_filter($lines, fn ($line) => preg_match('/^-+$/', $line));
+    expect($separators)->toHaveCount(1);
+});
+
+it('renders table when it fits within terminal width', function () {
+    $formatter = new HumanReadableFormatter(terminalWidth: 200);
+
+    $data = [
+        ['id' => 1, 'name' => 'Foo'],
+        ['id' => 2, 'name' => 'Bar'],
+    ];
+
+    $result = $formatter->format($data);
+
+    expect($result)->toContain('| ID')
+        ->toContain('| Name')
+        ->toContain('| Foo');
+});
+
+it('renders table when terminal width is null', function () {
+    $formatter = new HumanReadableFormatter;
+
+    $data = [
+        ['id' => 1, 'name' => 'Foo', 'description' => 'A long description that makes the table wide'],
+    ];
+
+    $result = $formatter->format($data);
+
+    expect($result)->toContain('| ID')
+        ->toContain('| Name')
+        ->toContain('| Description');
+});
+
+it('falls back to key-value lines when simple object table exceeds terminal width', function () {
+    $formatter = new HumanReadableFormatter(terminalWidth: 20);
+
+    $data = ['name' => 'John', 'email' => 'john@example.com'];
+
+    $result = $formatter->format($data);
+
+    expect($result)->toBe("Name: John\nEmail: john@example.com")
+        ->not->toContain('|');
 });

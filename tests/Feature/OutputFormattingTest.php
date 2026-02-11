@@ -45,7 +45,84 @@ afterEach(function () {
     OpenApiCli::clearRegistrations();
 });
 
-it('pretty-prints JSON responses by default', function () {
+// Human-readable output (default)
+
+it('outputs human-readable format by default', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123,"active":true}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects')
+        ->expectsOutputToContain('| Name   | Project 1 |')
+        ->expectsOutputToContain('| ID     | 123       |')
+        ->expectsOutputToContain('| Active | Yes       |')
+        ->assertSuccessful();
+});
+
+it('displays array of objects as table by default', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('[{"id":1,"name":"Project 1"},{"id":2,"name":"Project 2"}]', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects')
+        ->expectsOutputToContain('| ID | Name')
+        ->expectsOutputToContain('| 1')
+        ->expectsOutputToContain('| Project 2')
+        ->assertSuccessful();
+});
+
+it('displays wrapper pattern with data and meta in human-readable format by default', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"data":[{"id":1,"name":"Foo"},{"id":2,"name":"Bar"}],"meta":{"total":2}}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects')
+        ->expectsOutputToContain('# Data')
+        ->expectsOutputToContain('| ID | Name')
+        ->expectsOutputToContain('| Foo')
+        ->expectsOutputToContain('# Meta')
+        ->expectsOutputToContain('| Total | 2 |')
+        ->assertSuccessful();
+});
+
+it('displays error responses in human-readable format by default', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"error":"Not Found","message":"Resource not found"}', 404),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects')
+        ->expectsOutputToContain('| Error   | Not Found          |')
+        ->expectsOutputToContain('| Message | Resource not found |')
+        ->assertFailed();
+});
+
+it('combines human-readable output with --headers flag by default', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200, [
+            'Content-Type' => 'application/json',
+        ]),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects', ['--headers' => true])
+        ->expectsOutputToContain('HTTP/1.1 200 OK')
+        ->expectsOutputToContain('Content-Type: application/json')
+        ->expectsOutputToContain('| Name | Project 1 |')
+        ->assertSuccessful();
+});
+
+// --json flag tests
+
+it('outputs pretty-printed JSON with --json flag', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123,"active":true}', 200),
     ]);
@@ -60,12 +137,12 @@ it('pretty-prints JSON responses by default', function () {
 }
 JSON;
 
-    $this->artisan('test-api:get-projects')
+    $this->artisan('test-api:get-projects', ['--json' => true])
         ->expectsOutput($expected)
         ->assertSuccessful();
 });
 
-it('pretty-prints nested JSON structures', function () {
+it('pretty-prints nested JSON structures with --json flag', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"project":{"name":"Test","metadata":{"created":"2024-01-01","tags":["api","test"]}}}', 200),
     ]);
@@ -87,12 +164,12 @@ it('pretty-prints nested JSON structures', function () {
 }
 JSON;
 
-    $this->artisan('test-api:get-projects')
+    $this->artisan('test-api:get-projects', ['--json' => true])
         ->expectsOutput($expected)
         ->assertSuccessful();
 });
 
-it('pretty-prints JSON arrays', function () {
+it('pretty-prints JSON arrays with --json flag', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('[{"id":1,"name":"Project 1"},{"id":2,"name":"Project 2"}]', 200),
     ]);
@@ -112,76 +189,12 @@ it('pretty-prints JSON arrays', function () {
 ]
 JSON;
 
-    $this->artisan('test-api:get-projects')
+    $this->artisan('test-api:get-projects', ['--json' => true])
         ->expectsOutput($expected)
         ->assertSuccessful();
 });
 
-it('suppresses HTML body for non-JSON responses by default', function () {
-    Http::fake([
-        'https://api.example.com/html-response' => Http::response('<html><body>Hello World</body></html>', 200, ['Content-Type' => 'text/html']),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-html-response')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 200')
-        ->expectsOutputToContain('Use --output-html to see the full response body.')
-        ->doesntExpectOutputToContain('<html><body>Hello World</body></html>')
-        ->assertSuccessful();
-});
-
-it('outputs raw body for non-JSON responses (plain text)', function () {
-    Http::fake([
-        'https://api.example.com/plain-text' => Http::response('This is plain text content', 200, ['Content-Type' => 'text/plain']),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-plain-text')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/plain, status: 200')
-        ->expectsOutputToContain('This is plain text content')
-        ->assertSuccessful();
-});
-
-it('outputs raw body for invalid JSON', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('{"invalid": json content}', 200, ['Content-Type' => 'application/json']),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects')
-        ->expectsOutputToContain('Response is not JSON (content-type: application/json, status: 200')
-        ->expectsOutputToContain('{"invalid": json content}')
-        ->assertSuccessful();
-});
-
-it('handles empty JSON objects', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('{}', 200),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects')
-        ->expectsOutput('[]')
-        ->assertSuccessful();
-});
-
-it('handles empty JSON arrays', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('[]', 200),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects')
-        ->expectsOutput('[]')
-        ->assertSuccessful();
-});
-
-it('preserves unicode characters in JSON output', function () {
+it('preserves unicode characters in JSON output with --json flag', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"name":"Tëst Prøjéct","emoji":"🚀"}', 200),
     ]);
@@ -195,20 +208,44 @@ it('preserves unicode characters in JSON output', function () {
 }
 JSON;
 
-    $this->artisan('test-api:get-projects')
+    $this->artisan('test-api:get-projects', ['--json' => true])
         ->expectsOutput($expected)
         ->assertSuccessful();
 });
 
-it('does not escape forward slashes in JSON output', function () {
+it('does not escape forward slashes in JSON output with --json flag', function () {
     Http::fake([
         'https://api.example.com/projects' => Http::response('{"url":"https://example.com/path/to/resource"}', 200),
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects')
+    $this->artisan('test-api:get-projects', ['--json' => true])
         ->expectsOutputToContain('"url": "https://example.com/path/to/resource"')
+        ->assertSuccessful();
+});
+
+it('handles empty JSON objects with --json flag', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects', ['--json' => true])
+        ->expectsOutput('[]')
+        ->assertSuccessful();
+});
+
+it('handles empty JSON arrays with --json flag', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('[]', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects', ['--json' => true])
+        ->expectsOutput('[]')
         ->assertSuccessful();
 });
 
@@ -223,6 +260,20 @@ it('minifies JSON output when --minify flag is provided', function () {
 
     $this->artisan('test-api:get-projects', ['--minify' => true])
         ->expectsOutput('{"name":"Project 1","id":123,"active":true}')
+        ->assertSuccessful();
+});
+
+it('--minify implies --json output', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123,"active":true}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    // --minify alone should produce JSON, not human-readable
+    $this->artisan('test-api:get-projects', ['--minify' => true])
+        ->expectsOutput('{"name":"Project 1","id":123,"active":true}')
+        ->doesntExpectOutputToContain('Name: Project 1')
         ->assertSuccessful();
 });
 
@@ -310,6 +361,48 @@ it('minifies empty JSON arrays', function () {
         ->assertSuccessful();
 });
 
+// Non-JSON response tests
+
+it('suppresses HTML body for non-JSON responses by default', function () {
+    Http::fake([
+        'https://api.example.com/html-response' => Http::response('<html><body>Hello World</body></html>', 200, ['Content-Type' => 'text/html']),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-html-response')
+        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 200')
+        ->expectsOutputToContain('Use --output-html to see the full response body.')
+        ->doesntExpectOutputToContain('<html><body>Hello World</body></html>')
+        ->assertSuccessful();
+});
+
+it('outputs raw body for non-JSON responses (plain text)', function () {
+    Http::fake([
+        'https://api.example.com/plain-text' => Http::response('This is plain text content', 200, ['Content-Type' => 'text/plain']),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-plain-text')
+        ->expectsOutputToContain('Response is not JSON (content-type: text/plain, status: 200')
+        ->expectsOutputToContain('This is plain text content')
+        ->assertSuccessful();
+});
+
+it('outputs raw body for invalid JSON', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"invalid": json content}', 200, ['Content-Type' => 'application/json']),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects')
+        ->expectsOutputToContain('Response is not JSON (content-type: application/json, status: 200')
+        ->expectsOutputToContain('{"invalid": json content}')
+        ->assertSuccessful();
+});
+
 it('suppresses HTML body for non-JSON responses even with --minify flag', function () {
     Http::fake([
         'https://api.example.com/html-response' => Http::response('<html><body>Hello</body></html>', 200, ['Content-Type' => 'text/html']),
@@ -365,7 +458,7 @@ it('separates headers from body with blank line when --headers flag is provided'
 
     $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('Content-Type: application/json')
-        ->expectsOutputToContain('"name": "Project 1"')
+        ->expectsOutputToContain('| Name | Project 1 |')
         ->assertSuccessful();
 });
 
@@ -380,7 +473,7 @@ it('shows headers before body when --headers flag is provided', function () {
 
     $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('X-Request-ID: abc-123')
-        ->expectsOutputToContain('"id": 123')
+        ->expectsOutputToContain('| ID | 123 |')
         ->assertSuccessful();
 });
 
@@ -412,6 +505,22 @@ it('combines --headers and --minify flags correctly', function () {
         ->assertSuccessful();
 });
 
+it('combines --headers and --json flags correctly', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200, [
+            'Content-Type' => 'application/json',
+        ]),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects', ['--headers' => true, '--json' => true])
+        ->expectsOutputToContain('HTTP/1.1 200 OK')
+        ->expectsOutputToContain('Content-Type: application/json')
+        ->expectsOutputToContain('"name": "Project 1"')
+        ->assertSuccessful();
+});
+
 // 204 No Content tests
 
 it('handles 204 No Content responses gracefully and exits successfully', function () {
@@ -440,104 +549,6 @@ it('shows 204 status in headers when --headers flag is provided', function () {
     $this->artisan('test-api:get-projects', ['--headers' => true])
         ->expectsOutputToContain('HTTP/1.1 204 No Content')
         ->expectsOutputToContain('No content (204)')
-        ->assertSuccessful();
-});
-
-// --human flag tests
-
-it('displays simple object in human-readable format', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123,"active":true}', 200),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects', ['--human' => true])
-        ->expectsOutputToContain('Name: Project 1')
-        ->expectsOutputToContain('ID: 123')
-        ->expectsOutputToContain('Active: Yes')
-        ->assertSuccessful();
-});
-
-it('displays array of objects as table in human-readable format', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('[{"id":1,"name":"Project 1"},{"id":2,"name":"Project 2"}]', 200),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects', ['--human' => true])
-        ->expectsOutputToContain('| ID | Name')
-        ->expectsOutputToContain('| 1')
-        ->expectsOutputToContain('| Project 2')
-        ->assertSuccessful();
-});
-
-it('combines --human with --headers flag showing headers then human body', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200, [
-            'Content-Type' => 'application/json',
-        ]),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects', ['--human' => true, '--headers' => true])
-        ->expectsOutputToContain('HTTP/1.1 200 OK')
-        ->expectsOutputToContain('Content-Type: application/json')
-        ->expectsOutputToContain('Name: Project 1')
-        ->assertSuccessful();
-});
-
-it('--human takes precedence over --minify', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects', ['--human' => true, '--minify' => true])
-        ->expectsOutputToContain('Name: Project 1')
-        ->expectsOutputToContain('ID: 123')
-        ->assertSuccessful();
-});
-
-it('displays error responses in human-readable format', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('{"error":"Not Found","message":"Resource not found"}', 404),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects', ['--human' => true])
-        ->expectsOutputToContain('Error: Not Found')
-        ->expectsOutputToContain('Message: Resource not found')
-        ->assertFailed();
-});
-
-it('suppresses HTML body for non-JSON with --human flag', function () {
-    Http::fake([
-        'https://api.example.com/html-response' => Http::response('<html><body>Hello</body></html>', 200, ['Content-Type' => 'text/html']),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-html-response', ['--human' => true])
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 200')
-        ->expectsOutputToContain('Use --output-html to see the full response body.')
-        ->doesntExpectOutputToContain('<html><body>Hello</body></html>')
-        ->assertSuccessful();
-});
-
-it('handles 204 No Content with --human flag', function () {
-    Http::fake([
-        'https://api.example.com/projects' => Http::response('', 204),
-    ]);
-
-    OpenApiCli::register($this->specFile, 'test-api');
-
-    $this->artisan('test-api:get-projects', ['--human' => true])
-        ->expectsOutput('No content (204)')
         ->assertSuccessful();
 });
 
@@ -586,18 +597,154 @@ it('still shows plain text non-JSON responses by default', function () {
         ->assertSuccessful();
 });
 
-it('displays wrapper pattern with data and meta in human-readable format', function () {
+// jsonOutput() config tests
+
+it('outputs pretty-printed JSON when jsonOutput() config is set', function () {
     Http::fake([
-        'https://api.example.com/projects' => Http::response('{"data":[{"id":1,"name":"Foo"},{"id":2,"name":"Bar"}],"meta":{"total":2}}', 200),
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123,"active":true}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api')
+        ->jsonOutput();
+
+    $expected = <<<'JSON'
+{
+    "name": "Project 1",
+    "id": 123,
+    "active": true
+}
+JSON;
+
+    $this->artisan('test-api:get-projects')
+        ->expectsOutput($expected)
+        ->assertSuccessful();
+});
+
+it('--json flag still works with jsonOutput() config', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api')
+        ->jsonOutput();
+
+    $expected = <<<'JSON'
+{
+    "name": "Project 1",
+    "id": 123
+}
+JSON;
+
+    $this->artisan('test-api:get-projects', ['--json' => true])
+        ->expectsOutput($expected)
+        ->assertSuccessful();
+});
+
+it('--minify works with jsonOutput() config', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api')
+        ->jsonOutput();
+
+    $this->artisan('test-api:get-projects', ['--minify' => true])
+        ->expectsOutput('{"name":"Project 1","id":123}')
+        ->assertSuccessful();
+});
+
+// --yaml flag tests
+
+it('outputs YAML format with --yaml flag', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123,"active":true}', 200),
     ]);
 
     OpenApiCli::register($this->specFile, 'test-api');
 
-    $this->artisan('test-api:get-projects', ['--human' => true])
-        ->expectsOutputToContain('# Data')
-        ->expectsOutputToContain('| ID | Name')
-        ->expectsOutputToContain('| Foo')
-        ->expectsOutputToContain('# Meta')
-        ->expectsOutputToContain('Total: 2')
+    $this->artisan('test-api:get-projects', ['--yaml' => true])
+        ->expectsOutputToContain('name: \'Project 1\'')
+        ->expectsOutputToContain('id: 123')
+        ->expectsOutputToContain('active: true')
+        ->assertSuccessful();
+});
+
+it('outputs nested YAML structures with --yaml flag', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"project":{"name":"Test","tags":["api","test"]}}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects', ['--yaml' => true])
+        ->expectsOutputToContain('project:')
+        ->expectsOutputToContain('  name: Test')
+        ->expectsOutputToContain('  tags:')
+        ->expectsOutputToContain('    - api')
+        ->expectsOutputToContain('    - test')
+        ->assertSuccessful();
+});
+
+it('combines --yaml and --headers flags correctly', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200, [
+            'Content-Type' => 'application/json',
+        ]),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->artisan('test-api:get-projects', ['--yaml' => true, '--headers' => true])
+        ->expectsOutputToContain('HTTP/1.1 200 OK')
+        ->expectsOutputToContain('Content-Type: application/json')
+        ->expectsOutputToContain('name: \'Project 1\'')
+        ->expectsOutputToContain('id: 123')
+        ->assertSuccessful();
+});
+
+it('outputs YAML by default when yamlOutput() config is set', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api')
+        ->yamlOutput();
+
+    $this->artisan('test-api:get-projects')
+        ->expectsOutputToContain('name: \'Project 1\'')
+        ->expectsOutputToContain('id: 123')
+        ->assertSuccessful();
+});
+
+it('--json flag overrides yamlOutput() config', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api')
+        ->yamlOutput();
+
+    $expected = <<<'JSON'
+{
+    "name": "Project 1",
+    "id": 123
+}
+JSON;
+
+    $this->artisan('test-api:get-projects', ['--json' => true])
+        ->expectsOutput($expected)
+        ->assertSuccessful();
+});
+
+it('--minify flag overrides yamlOutput() config', function () {
+    Http::fake([
+        'https://api.example.com/projects' => Http::response('{"name":"Project 1","id":123}', 200),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api')
+        ->yamlOutput();
+
+    $this->artisan('test-api:get-projects', ['--minify' => true])
+        ->expectsOutput('{"name":"Project 1","id":123}')
         ->assertSuccessful();
 });
