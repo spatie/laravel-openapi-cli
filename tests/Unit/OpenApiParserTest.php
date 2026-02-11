@@ -318,4 +318,5 @@ it('throws exception when spec file is not readable', function () {
         chmod($tempFile, 0644);
         unlink($tempFile);
     }
-})->throws(\InvalidArgumentException::class, 'Spec file is not readable');
+})->throws(\InvalidArgumentException::class, 'Spec file is not readable')
+    ->skipOnWindows();
