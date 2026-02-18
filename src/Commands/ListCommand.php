@@ -170,7 +170,20 @@ class ListCommand extends Command
             $description = $endpoint['description'];
 
             $color = $this->verbColors[$method] ?? '#6C7280';
-            $paddedMethod = str_pad($method, $maxMethod);
+
+            $spaces = str_repeat(' ', max($maxMethod + 6 - mb_strlen($method), 0));
+
+            $dots = str_repeat('.', max(
+                $terminalWidth - mb_strlen($method.$spaces.$command.$path) - 6 - ($path ? 1 : 0), 0
+            ));
+
+            $dots = $dots === '' ? $dots : " {$dots}";
+
+            if (mb_strlen($method.$spaces.$command.$path.$dots) > ($terminalWidth - 6)) {
+                $available = $terminalWidth - 7 - mb_strlen($method.$spaces.$command.$dots);
+                $path = $available > 1 ? mb_substr($path, 0, $available).'…' : '';
+                $dots = $path === '' ? $dots : " {$dots}";
+            }
 
             $formattedPath = (string) preg_replace(
                 '/(\{[^}]+\})/',
@@ -178,19 +191,19 @@ class ListCommand extends Command
                 $path,
             );
 
-            $indent = 2;
-            $spacingAfterMethod = 2;
-            $plainLineLength = $indent + $maxMethod + $spacingAfterMethod + mb_strlen($path) + 1 + mb_strlen($command);
-            $dotsCount = max($terminalWidth - $plainLineLength, 3);
-            $dots = str_repeat('.', $dotsCount);
-
-            $lines[] = "  <fg={$color}>{$paddedMethod}</>"
-                ."  <fg=white;options=bold>{$formattedPath}</>"
-                ." <fg=#6C7280>{$dots} {$command}</>";
+            $lines[] = sprintf(
+                '  <fg=%s>%s</> %s<fg=white;options=bold>%s</><fg=#6C7280>%s %s</>',
+                $color,
+                $method,
+                $spaces,
+                $command,
+                $dots,
+                $formattedPath,
+            );
 
             if ($description !== '') {
-                $descriptionIndent = str_repeat(' ', $indent + $maxMethod + $spacingAfterMethod);
-                $lines[] = "{$descriptionIndent}<fg=#6C7280>{$description}</>";
+                $descriptionIndent = str_repeat(' ', 2 + $maxMethod + 6);
+                $lines[] = "<fg=#6C7280>{$descriptionIndent}{$description}</>";
             }
         }
 

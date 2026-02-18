@@ -122,10 +122,20 @@ it('displays endpoint count footer', function () {
         ->expectsOutputToContain('Showing [5] endpoints');
 });
 
-it('displays dot-fill between path and command name', function () {
+it('displays dot-fill between command name and path', function () {
     $this->artisan('test-api:list')
         ->assertSuccessful()
         ->expectsOutputToContain('...');
+});
+
+it('truncates path when terminal is narrow', function () {
+    \Spatie\OpenApiCli\Commands\ListCommand::resolveTerminalWidthUsing(fn () => 50);
+
+    $this->artisan('test-api:list')
+        ->assertSuccessful()
+        ->expectsOutputToContain('test-api:get-projects');
+
+    \Spatie\OpenApiCli\Commands\ListCommand::resolveTerminalWidthUsing(null);
 });
 
 it('uses custom terminal width resolver', function () {
