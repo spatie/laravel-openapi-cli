@@ -107,3 +107,33 @@ it('shows disambiguated command names for colliding paths', function () {
         ->assertSuccessful()
         ->expectsOutputToContain('test-api:get-projects-project-id');
 });
+
+it('displays paths in list output', function () {
+    $this->artisan('test-api:list')
+        ->assertSuccessful()
+        ->expectsOutputToContain('/projects/{projectId}')
+        ->expectsOutputToContain('/users')
+        ->expectsOutputToContain('/projects');
+});
+
+it('displays endpoint count footer', function () {
+    $this->artisan('test-api:list')
+        ->assertSuccessful()
+        ->expectsOutputToContain('Showing [5] endpoints');
+});
+
+it('displays dot-fill between path and command name', function () {
+    $this->artisan('test-api:list')
+        ->assertSuccessful()
+        ->expectsOutputToContain('...');
+});
+
+it('uses custom terminal width resolver', function () {
+    \Spatie\OpenApiCli\Commands\ListCommand::resolveTerminalWidthUsing(fn () => 80);
+
+    $this->artisan('test-api:list')
+        ->assertSuccessful()
+        ->expectsOutputToContain('Showing [5] endpoints');
+
+    \Spatie\OpenApiCli\Commands\ListCommand::resolveTerminalWidthUsing(null);
+});

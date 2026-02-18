@@ -2,6 +2,7 @@
 
 namespace Spatie\OpenApiCli\Commands;
 
+use Closure;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Spatie\OpenApiCli\CommandConfiguration;
@@ -9,12 +10,25 @@ use Spatie\OpenApiCli\CommandNameGenerator;
 use Spatie\OpenApiCli\OpenApiParser;
 use Spatie\OpenApiCli\RefResolver;
 use Spatie\OpenApiCli\SpecResolver;
+use Symfony\Component\Console\Terminal;
 
 class ListCommand extends Command
 {
     protected $signature;
 
     protected $description = 'List all available API commands';
+
+    /** @var array<string, string> */
+    protected array $verbColors = [
+        'GET' => 'blue',
+        'HEAD' => '#6C7280',
+        'POST' => 'yellow',
+        'PUT' => 'yellow',
+        'PATCH' => 'yellow',
+        'DELETE' => 'red',
+    ];
+
+    protected static ?Closure $terminalWidthResolver = null;
 
     public function __construct(
         protected CommandConfiguration $config,
@@ -34,6 +48,18 @@ class ListCommand extends Command
         $this->displayEndpoints($endpoints);
 
         return self::SUCCESS;
+    }
+
+    public static function getTerminalWidth(): int
+    {
+        return is_null(static::$terminalWidthResolver)
+            ? (new Terminal)->getWidth()
+            : call_user_func(static::$terminalWidthResolver);
+    }
+
+    public static function resolveTerminalWidthUsing(?Closure $resolver): void
+    {
+        static::$terminalWidthResolver = $resolver;
     }
 
     protected function displayBanner(): void
@@ -132,13 +158,56 @@ class ListCommand extends Command
     /** @param Collection<int, array{method: string, path: string, command: string, description: string}> $endpoints */
     protected function displayEndpoints(Collection $endpoints): void
     {
-        $methodWidth = 7;
-        $maxCommandWidth = $endpoints->max(fn (array $endpoint) => strlen($endpoint['command']));
+        $terminalWidth = static::getTerminalWidth();
+        $maxMethod = $endpoints->max(fn (array $endpoint) => mb_strlen($endpoint['method'])) ?? 0;
 
-        $endpoints->each(function (array $endpoint) use ($methodWidth, $maxCommandWidth) {
-            $method = str_pad($endpoint['method'], $methodWidth);
-            $command = str_pad($endpoint['command'], $maxCommandWidth);
-            $this->line("{$method}{$command}  {$endpoint['description']}");
-        });
+        $lines = [''];
+
+        foreach ($endpoints as $endpoint) {
+            $method = $endpoint['method'];
+            $path = $endpoint['path'];
+            $command = $endpoint['command'];
+            $description = $endpoint['description'];
+
+            $color = $this->verbColors[$method] ?? '#6C7280';
+            $paddedMethod = str_pad($method, $maxMethod);
+
+            $formattedPath = (string) preg_replace(
+                '/(\{[^}]+\})/',
+                '<fg=yellow>$1</>',
+                $path,
+            );
+
+            $indent = 2;
+            $spacingAfterMethod = 2;
+            $plainLineLength = $indent + $maxMethod + $spacingAfterMethod + mb_strlen($path) + 1 + mb_strlen($command);
+            $dotsCount = max($terminalWidth - $plainLineLength, 3);
+            $dots = str_repeat('.', $dotsCount);
+
+            $lines[] = "  <fg={$color}>{$paddedMethod}</>"
+                ."  <fg=white;options=bold>{$formattedPath}</>"
+                ." <fg=#6C7280>{$dots} {$command}</>";
+
+            if ($description !== '') {
+                $descriptionIndent = str_repeat(' ', $indent + $maxMethod + $spacingAfterMethod);
+                $lines[] = "{$descriptionIndent}<fg=#6C7280>{$description}</>";
+            }
+        }
+
+        $lines[] = '';
+        $lines[] = $this->determineEndpointCountOutput($endpoints, $terminalWidth);
+        $lines[] = '';
+
+        $this->output->writeln($lines);
+    }
+
+    /** @param Collection<int, array{method: string, path: string, command: string, description: string}> $endpoints */
+    protected function determineEndpointCountOutput(Collection $endpoints, int $terminalWidth): string
+    {
+        $text = 'Showing ['.$endpoints->count().'] endpoints';
+
+        $offset = max($terminalWidth - mb_strlen($text) - 2, 0);
+
+        return str_repeat(' ', $offset).'<fg=blue;options=bold>'.$text.'</>';
     }
 }
