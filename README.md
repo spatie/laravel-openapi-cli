@@ -5,7 +5,7 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/spatie/laravel-openapi-cli/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/spatie/laravel-openapi-cli/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/spatie/laravel-openapi-cli.svg?style=flat-square)](https://packagist.org/packages/spatie/laravel-openapi-cli)
 
-Turn any OpenAPI spec into dedicated Laravel artisan commands. Each endpoint gets its own command with typed options for path parameters, query parameters, and request bodies.
+Turn any OpenAPI spec into dedicated Laravel artisan commands. Each endpoint gets its own command with typed options for path parameters, query parameters, and request bodies. Combined with [Laravel Zero](https://laravel-zero.com), this is a great way to build standalone CLI tools for any API that has an OpenAPI spec.
 
 ```php
 use Spatie\OpenApiCli\Facades\OpenApiCli;
@@ -26,6 +26,14 @@ OpenApiCli::register('https://api.bookstore.io/openapi.yaml', 'bookstore')
         };
     });
 ```
+
+For a spec with `GET /books`, `POST /books`, `GET /books/{book_id}/reviews`, and `DELETE /books/{book_id}`, you get these commands:
+
+- `bookstore:get-books`
+- `bookstore:post-books`
+- `bookstore:get-books-reviews`
+- `bookstore:delete-books`
+- `bookstore:list`
 
 ## Support us
 
