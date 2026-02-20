@@ -2,6 +2,10 @@
 
 All notable changes to `laravel-openapi-cli` will be documented in this file.
 
+## 1.0.2 - 2026-02-20
+
+**Full Changelog**: https://github.com/spatie/laravel-openapi-cli/compare/1.0.1...1.0.2
+
 ## 1.0.1 - 2026-02-20
 
 - fix query parameters with invalid characters
