@@ -184,20 +184,25 @@ class HumanReadableFormatter
             return '';
         }
 
-        $allScalar = collect($value)->every(fn ($v) => is_scalar($v) || $v === null);
+        if (! $this->isAssociative($value)) {
+            $allScalar = collect($value)->every(fn ($v) => is_scalar($v) || $v === null);
 
-        if (! $allScalar) {
-            return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
-        }
+            if ($allScalar) {
+                return collect($value)->map(fn ($v) => $this->formatScalar($v))->implode(', ');
+            }
 
-        if ($this->isAssociative($value)) {
-            return collect($value)
-                ->map(fn ($v, string $k) => $this->humanizeKey($k).': '.$this->formatScalar($v))
-                ->implode(', ');
+            return '('.count($value).' items)';
         }
 
         return collect($value)
-            ->map(fn ($v) => $this->formatScalar($v))
+            ->reject(fn ($v) => $v === null)
+            ->map(function ($v, string $k) {
+                if (is_array($v)) {
+                    return $this->humanizeKey($k).': ('.count($v).' items)';
+                }
+
+                return $this->humanizeKey($k).': '.$this->formatScalar($v);
+            })
             ->implode(', ');
     }
 

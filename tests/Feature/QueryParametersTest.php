@@ -172,6 +172,58 @@ it('maps bracket params with operators to clean option names and encodes origina
     unlink($specPath);
 });
 
+it('shows enum values in option description', function () {
+    $spec = [
+        'openapi' => '3.0.0',
+        'info' => ['title' => 'Test API', 'version' => '1.0.0'],
+        'servers' => [
+            ['url' => 'https://api.example.com'],
+        ],
+        'paths' => [
+            '/items' => [
+                'get' => [
+                    'summary' => 'List items',
+                    'parameters' => [
+                        [
+                            'name' => 'sort',
+                            'in' => 'query',
+                            'description' => 'Sort field',
+                            'schema' => [
+                                'type' => 'string',
+                                'enum' => ['first_seen_at', 'last_seen_at', '-first_seen_at', '-last_seen_at'],
+                            ],
+                        ],
+                        [
+                            'name' => 'status',
+                            'in' => 'query',
+                            'description' => 'Filter by status',
+                            'schema' => [
+                                'type' => 'string',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $specPath = sys_get_temp_dir().'/test_spec_enum_'.uniqid().'.json';
+    file_put_contents($specPath, json_encode($spec));
+
+    Http::fake([
+        'https://api.example.com/items*' => Http::response(['data' => []], 200),
+    ]);
+
+    OpenApiCli::register($specPath, 'test-api');
+
+    $command = $this->artisan('test-api:get-items', ['--help' => true]);
+
+    $command->expectsOutputToContain('Sort field [first_seen_at, last_seen_at, -first_seen_at, -last_seen_at]');
+    $command->expectsOutputToContain('Filter by status');
+
+    unlink($specPath);
+});
+
 it('works with POST requests and query parameters', function () {
     Http::fake([
         'https://api.example.com/projects*' => Http::response(['data' => 'created'], 201),

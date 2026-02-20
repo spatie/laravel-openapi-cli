@@ -174,6 +174,35 @@ it('formats nested associative arrays in table cells as compact key-value pairs'
         ->toContain('Method: POST, Path: /api/orders');
 });
 
+it('formats nested associative arrays with mixed scalar and nested values', function () {
+    $data = [
+        ['id' => 1, 'detail' => ['route' => 'docs/{slug?}', 'method' => 'GET', 'views' => 288, 'exceptions' => null, 'http_codes' => ['200' => 6, '301' => 2]]],
+    ];
+
+    $result = $this->formatter->format($data);
+
+    expect($result)->toContain('Route: docs/{slug?}')
+        ->toContain('Method: GET')
+        ->toContain('Views: 288')
+        ->not->toContain('Exceptions')
+        ->toContain('HTTP Codes: (2 items)');
+});
+
+it('formats indexed array of objects in table cells as item count', function () {
+    $data = [
+        ['id' => 1, 'attributes' => [
+            ['group' => 'request', 'key' => 'url', 'value' => 'https://example.com'],
+            ['group' => 'request', 'key' => 'method', 'value' => 'GET'],
+            ['group' => 'user', 'key' => 'email', 'value' => 'test@example.com'],
+        ]],
+    ];
+
+    $result = $this->formatter->format($data);
+
+    expect($result)->toContain('(3 items)')
+        ->not->toContain('"group"');
+});
+
 // Wrapper patterns (data/meta sections)
 
 it('formats wrapper pattern with data and meta sections', function () {

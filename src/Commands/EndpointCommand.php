@@ -280,6 +280,9 @@ class EndpointCommand extends Command
                 $optionName = CommandNameGenerator::parameterToOptionName($paramName);
                 $this->pathParamOptionMap[$paramName] = $optionName;
                 $description = $param['description'] ?? "Path parameter: {$paramName}";
+                if (isset($param['schema']['enum'])) {
+                    $description .= ' ['.implode(', ', $param['schema']['enum']).']';
+                }
                 $parts[] = "{--{$optionName}= : {$description}}";
             });
 
@@ -290,6 +293,9 @@ class EndpointCommand extends Command
                 $optionName = CommandNameGenerator::queryParamToOptionName($paramName);
                 $this->queryParamOptionMap[$paramName] = $optionName;
                 $description = $param['description'] ?? "Query parameter: {$paramName}";
+                if (isset($param['schema']['enum'])) {
+                    $description .= ' ['.implode(', ', $param['schema']['enum']).']';
+                }
                 $parts[] = "{--{$optionName}= : {$description}}";
             });
 
