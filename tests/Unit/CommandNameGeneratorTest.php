@@ -114,6 +114,13 @@ it('converts filter with snake_case name', function () {
     expect(CommandNameGenerator::queryParamToOptionName('filter[exception_message]'))->toBe('filter-exception-message');
 });
 
+it('strips operator suffixes from bracket params', function () {
+    expect(CommandNameGenerator::queryParamToOptionName('filter[p95:>=]'))->toBe('filter-p95');
+    expect(CommandNameGenerator::queryParamToOptionName('filter[error_rate:>=]'))->toBe('filter-error-rate');
+    expect(CommandNameGenerator::queryParamToOptionName('filter[count:>=]'))->toBe('filter-count');
+    expect(CommandNameGenerator::queryParamToOptionName('filter[average:<=]'))->toBe('filter-average');
+});
+
 // fromPathDisambiguated tests
 
 it('includes trailing path parameter in disambiguated name', function () {

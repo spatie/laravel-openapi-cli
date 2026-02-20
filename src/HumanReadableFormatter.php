@@ -131,7 +131,7 @@ class HumanReadableFormatter
             $value = $item[$key] ?? null;
 
             return is_array($value)
-                ? (json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '')
+                ? $this->formatNestedCellValue($value)
                 : $this->formatScalar($value);
         }));
 
@@ -176,6 +176,29 @@ class HumanReadableFormatter
         return $useTable
             ? $cards->implode("\n".str_repeat('-', $totalWidth)."\n")
             : $cards->implode("\n\n");
+    }
+
+    private function formatNestedCellValue(array $value): string
+    {
+        if ($value === []) {
+            return '';
+        }
+
+        $allScalar = collect($value)->every(fn ($v) => is_scalar($v) || $v === null);
+
+        if (! $allScalar) {
+            return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
+        }
+
+        if ($this->isAssociative($value)) {
+            return collect($value)
+                ->map(fn ($v, string $k) => $this->humanizeKey($k).': '.$this->formatScalar($v))
+                ->implode(', ');
+        }
+
+        return collect($value)
+            ->map(fn ($v) => $this->formatScalar($v))
+            ->implode(', ');
     }
 
     private function formatHeterogeneousList(array $data, int $depth): string

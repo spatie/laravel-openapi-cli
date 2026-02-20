@@ -63,6 +63,7 @@ class CommandNameGenerator
     {
         return Str::of($paramName)
             ->replaceMatches('/\[([^\]]+)\]/', '-$1')
+            ->replaceMatches('/[^a-zA-Z0-9_-]/', '')
             ->pipe(fn ($name) => self::parameterToOptionName($name->value()));
     }
 }

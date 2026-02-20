@@ -150,7 +150,7 @@ it('displays full cell values without truncation', function () {
         ->not->toContain('...');
 });
 
-it('formats nested values in table cells as compact JSON', function () {
+it('formats nested indexed arrays in table cells as comma-separated values', function () {
     $data = [
         ['id' => 1, 'tags' => ['api', 'test']],
         ['id' => 2, 'tags' => ['web']],
@@ -158,7 +158,20 @@ it('formats nested values in table cells as compact JSON', function () {
 
     $result = $this->formatter->format($data);
 
-    expect($result)->toContain('["api","test"]');
+    expect($result)->toContain('api, test')
+        ->toContain('web');
+});
+
+it('formats nested associative arrays in table cells as compact key-value pairs', function () {
+    $data = [
+        ['id' => 1, 'detail' => ['method' => 'GET', 'path' => '/api/users']],
+        ['id' => 2, 'detail' => ['method' => 'POST', 'path' => '/api/orders']],
+    ];
+
+    $result = $this->formatter->format($data);
+
+    expect($result)->toContain('Method: GET, Path: /api/users')
+        ->toContain('Method: POST, Path: /api/orders');
 });
 
 // Wrapper patterns (data/meta sections)

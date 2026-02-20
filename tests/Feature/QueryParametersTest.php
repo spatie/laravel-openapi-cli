@@ -128,6 +128,50 @@ it('combines query parameters with path parameters', function () {
     });
 });
 
+it('maps bracket params with operators to clean option names and encodes original param in URL', function () {
+    $spec = [
+        'openapi' => '3.0.0',
+        'info' => ['title' => 'Test API', 'version' => '1.0.0'],
+        'servers' => [
+            ['url' => 'https://api.example.com'],
+        ],
+        'paths' => [
+            '/aggregations' => [
+                'get' => [
+                    'summary' => 'List aggregations',
+                    'parameters' => [
+                        ['name' => 'filter[p95:>=]', 'in' => 'query', 'schema' => ['type' => 'string']],
+                        ['name' => 'filter[error_rate:>=]', 'in' => 'query', 'schema' => ['type' => 'string']],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $specPath = sys_get_temp_dir().'/test_spec_operator_'.uniqid().'.json';
+    file_put_contents($specPath, json_encode($spec));
+
+    Http::fake([
+        'https://api.example.com/aggregations*' => Http::response(['data' => []], 200),
+    ]);
+
+    OpenApiCli::register($specPath, 'test-api');
+
+    $this->artisan('test-api:get-aggregations', [
+        '--filter-p95' => '500',
+        '--filter-error-rate' => '10',
+    ])->assertSuccessful();
+
+    Http::assertSent(function ($request) {
+        $url = $request->url();
+
+        return str_contains($url, 'filter%5Bp95%3A%3E%3D%5D=500')
+            && str_contains($url, 'filter%5Berror_rate%3A%3E%3D%5D=10');
+    });
+
+    unlink($specPath);
+});
+
 it('works with POST requests and query parameters', function () {
     Http::fake([
         'https://api.example.com/projects*' => Http::response(['data' => 'created'], 201),
