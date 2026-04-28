@@ -5,10 +5,9 @@ namespace Spatie\OpenApiCli\Tests;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Spatie\OpenApiCli\CommandConfiguration;
-use Spatie\OpenApiCli\CommandNameGenerator;
 use Spatie\OpenApiCli\Commands\EndpointCommand;
 use Spatie\OpenApiCli\Commands\ListCommand;
+use Spatie\OpenApiCli\EndpointResolver;
 use Spatie\OpenApiCli\OpenApiCli;
 use Spatie\OpenApiCli\OpenApiCliServiceProvider;
 use Spatie\OpenApiCli\OpenApiParser;
@@ -81,11 +80,10 @@ class TestCase extends Orchestra
         foreach (\Spatie\OpenApiCli\Facades\OpenApiCli::getRegistrations() as $config) {
             $parser = new OpenApiParser(SpecResolver::resolve($config->getSpecPath(), $config));
             $spec = $parser->getSpec();
-            $resolver = new RefResolver($spec);
-            $pathsWithMethods = $parser->getPathsWithMethods();
+            $resolver = new EndpointResolver(new RefResolver($spec));
             $namespace = $config->getNamespace();
 
-            $endpoints = $this->resolveEndpoints($config, $pathsWithMethods, $spec, $resolver);
+            $endpoints = $resolver->resolve($config, $parser->getPathsWithMethods(), $spec);
 
             $commandBindings = [];
 
@@ -124,89 +122,5 @@ class TestCase extends Orchestra
                 }
             }
         }
-    }
-
-    /**
-     * @return array<int, array{method: string, path: string, operationData: array, commandSuffix: string}>
-     */
-    protected function resolveEndpoints(CommandConfiguration $config, array $pathsWithMethods, array $spec, RefResolver $resolver): array
-    {
-        $endpoints = [];
-
-        foreach ($pathsWithMethods as $path => $methods) {
-            foreach ($methods as $method) {
-                $operationData = $spec['paths'][$path][$method] ?? [];
-                $operationData = $resolver->resolve($operationData);
-                $operationData = $this->mergePathLevelParameters($operationData, $spec['paths'][$path] ?? [], $resolver);
-
-                if ($config->shouldUseOperationIds()) {
-                    $operationId = $operationData['operationId'] ?? null;
-                    $commandSuffix = $operationId
-                        ? CommandNameGenerator::fromOperationId($operationId)
-                        : CommandNameGenerator::fromPath($method, $path);
-                } else {
-                    $commandSuffix = CommandNameGenerator::fromPath($method, $path);
-                }
-
-                $endpoints[] = [
-                    'method' => $method,
-                    'path' => $path,
-                    'operationData' => $operationData,
-                    'commandSuffix' => $commandSuffix,
-                ];
-            }
-        }
-
-        // Detect and resolve naming collisions
-        $suffixCounts = [];
-        foreach ($endpoints as $endpoint) {
-            $suffixCounts[$endpoint['commandSuffix']] = ($suffixCounts[$endpoint['commandSuffix']] ?? 0) + 1;
-        }
-
-        foreach ($endpoints as &$endpoint) {
-            if ($suffixCounts[$endpoint['commandSuffix']] > 1) {
-                $endpoint['commandSuffix'] = CommandNameGenerator::fromPathDisambiguated($endpoint['method'], $endpoint['path']);
-            }
-        }
-
-        return $endpoints;
-    }
-
-    /**
-     * @param  array<string, mixed>  $operationData
-     * @param  array<string, mixed>  $pathItem
-     * @return array<string, mixed>
-     */
-    protected function mergePathLevelParameters(array $operationData, array $pathItem, RefResolver $resolver): array
-    {
-        $pathLevelParams = $pathItem['parameters'] ?? [];
-
-        if (empty($pathLevelParams)) {
-            return $operationData;
-        }
-
-        $resolvedPathParams = array_map(
-            fn (mixed $param) => $resolver->resolve($param),
-            $pathLevelParams,
-        );
-
-        $operationParams = $operationData['parameters'] ?? [];
-
-        $existingKeys = array_map(
-            fn (array $p) => ($p['name'] ?? '').':'.($p['in'] ?? ''),
-            $operationParams,
-        );
-
-        foreach ($resolvedPathParams as $pathParam) {
-            $key = ($pathParam['name'] ?? '').':'.($pathParam['in'] ?? '');
-
-            if (! in_array($key, $existingKeys)) {
-                $operationParams[] = $pathParam;
-            }
-        }
-
-        $operationData['parameters'] = $operationParams;
-
-        return $operationData;
     }
 }
