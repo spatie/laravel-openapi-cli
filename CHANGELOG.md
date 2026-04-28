@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-openapi-cli` will be documented in this file.
 
+## 1.2.0 - 2026-04-28
+
+### What's Changed
+
+* Extract EndpointResolver to remove duplication by @freekmurze in https://github.com/spatie/laravel-openapi-cli/pull/7
+
+**Full Changelog**: https://github.com/spatie/laravel-openapi-cli/compare/1.1.0...1.2.0
+
 ## 1.1.0 - 2026-04-28
 
 ### What's Changed
