@@ -15,7 +15,7 @@ it('resolves base URL from configuration when provided', function () {
 
     $command = new EndpointCommand($config, 'get', '/me', ['summary' => 'Get me'], 'get-me');
 
-    $reflection = new \ReflectionClass($command);
+    $reflection = new ReflectionClass($command);
     $method = $reflection->getMethod('resolveBaseUrl');
     $method->setAccessible(true);
 
@@ -30,7 +30,7 @@ it('falls back to spec servers url when no configuration provided', function () 
 
     $command = new EndpointCommand($config, 'get', '/me', ['summary' => 'Get me'], 'get-me');
 
-    $reflection = new \ReflectionClass($command);
+    $reflection = new ReflectionClass($command);
     $method = $reflection->getMethod('resolveBaseUrl');
     $method->setAccessible(true);
 
@@ -58,7 +58,7 @@ YAML;
         $config = new CommandConfiguration($specPath, 'test-api');
         $command = new EndpointCommand($config, 'get', '/test', ['summary' => 'Test endpoint'], 'get-test');
 
-        $reflection = new \ReflectionClass($command);
+        $reflection = new ReflectionClass($command);
         $method = $reflection->getMethod('resolveBaseUrl');
         $method->setAccessible(true);
 
@@ -68,7 +68,7 @@ YAML;
             unlink($specPath);
         }
     }
-})->throws(\RuntimeException::class, 'No base URL available');
+})->throws(RuntimeException::class, 'No base URL available');
 
 it('prefers configured base url over spec servers url', function () {
     $specPath = __DIR__.'/../../flare-api.yaml';
@@ -77,7 +77,7 @@ it('prefers configured base url over spec servers url', function () {
 
     $command = new EndpointCommand($config, 'get', '/me', ['summary' => 'Get me'], 'get-me');
 
-    $reflection = new \ReflectionClass($command);
+    $reflection = new ReflectionClass($command);
     $method = $reflection->getMethod('resolveBaseUrl');
     $method->setAccessible(true);
 
@@ -106,7 +106,7 @@ YAML;
         $config = new CommandConfiguration($specPath, 'test-api');
         $command = new EndpointCommand($config, 'get', '/test', ['summary' => 'Test endpoint'], 'get-test');
 
-        $reflection = new \ReflectionClass($command);
+        $reflection = new ReflectionClass($command);
         $method = $reflection->getMethod('resolveBaseUrl');
         $method->setAccessible(true);
 
@@ -116,4 +116,4 @@ YAML;
             unlink($specPath);
         }
     }
-})->throws(\RuntimeException::class, 'No base URL available');
+})->throws(RuntimeException::class, 'No base URL available');

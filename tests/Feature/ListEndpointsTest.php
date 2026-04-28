@@ -1,5 +1,6 @@
 <?php
 
+use Spatie\OpenApiCli\Commands\ListCommand;
 use Spatie\OpenApiCli\Facades\OpenApiCli;
 
 beforeEach(function () {
@@ -66,7 +67,7 @@ afterEach(function () {
         unlink($this->specPath);
     }
 
-    \Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
+    Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
 });
 
 it('lists all endpoints with GET methods', function () {
@@ -129,21 +130,21 @@ it('displays dot-fill between command name and path', function () {
 });
 
 it('truncates path when terminal is narrow', function () {
-    \Spatie\OpenApiCli\Commands\ListCommand::resolveTerminalWidthUsing(fn () => 50);
+    ListCommand::resolveTerminalWidthUsing(fn () => 50);
 
     $this->artisan('test-api:list')
         ->assertSuccessful()
         ->expectsOutputToContain('test-api:get-projects');
 
-    \Spatie\OpenApiCli\Commands\ListCommand::resolveTerminalWidthUsing(null);
+    ListCommand::resolveTerminalWidthUsing(null);
 });
 
 it('uses custom terminal width resolver', function () {
-    \Spatie\OpenApiCli\Commands\ListCommand::resolveTerminalWidthUsing(fn () => 80);
+    ListCommand::resolveTerminalWidthUsing(fn () => 80);
 
     $this->artisan('test-api:list')
         ->assertSuccessful()
         ->expectsOutputToContain('Showing [5] endpoints');
 
-    \Spatie\OpenApiCli\Commands\ListCommand::resolveTerminalWidthUsing(null);
+    ListCommand::resolveTerminalWidthUsing(null);
 });

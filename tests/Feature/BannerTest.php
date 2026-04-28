@@ -32,7 +32,7 @@ afterEach(function () {
         unlink($this->specPath);
     }
 
-    \Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
+    Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
 });
 
 it('displays a string banner at the top of list output', function () {

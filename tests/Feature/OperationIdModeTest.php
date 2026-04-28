@@ -58,7 +58,7 @@ afterEach(function () {
         unlink($this->specPath);
     }
 
-    \Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
+    Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
 });
 
 it('registers commands using operationId when useOperationIds is enabled', function () {

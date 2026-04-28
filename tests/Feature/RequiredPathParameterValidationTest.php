@@ -59,7 +59,7 @@ afterEach(function () {
         unlink($this->specPath);
     }
 
-    \Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
+    Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
 });
 
 it('succeeds when required path parameter is provided', function () {
