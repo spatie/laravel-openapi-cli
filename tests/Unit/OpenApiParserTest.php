@@ -154,7 +154,7 @@ it('returns null when request body schema is not present', function () {
 
 it('throws exception when spec file does not exist', function () {
     new OpenApiParser('/path/to/nonexistent/file.yaml');
-})->throws(\InvalidArgumentException::class, 'Spec file not found');
+})->throws(InvalidArgumentException::class, 'Spec file not found');
 
 it('throws exception for invalid YAML syntax', function () {
     $tempFile = sys_get_temp_dir().'/openapi_'.uniqid().'.yaml';
@@ -172,7 +172,7 @@ YAML
     } finally {
         unlink($tempFile);
     }
-})->throws(\InvalidArgumentException::class);
+})->throws(InvalidArgumentException::class);
 
 it('can get the full spec', function () {
     $parser = new OpenApiParser(__DIR__.'/../../flare-api.yaml');
@@ -224,7 +224,7 @@ it('throws exception for invalid JSON', function () {
     } finally {
         unlink($tempFile);
     }
-})->throws(\InvalidArgumentException::class, 'Failed to parse JSON file');
+})->throws(InvalidArgumentException::class, 'Failed to parse JSON file');
 
 it('auto-detects format based on file extension', function () {
     $yamlFile = sys_get_temp_dir().'/openapi_'.uniqid().'.yaml';
@@ -305,7 +305,7 @@ it('throws exception for unsupported file format', function () {
     } finally {
         unlink($tempFile);
     }
-})->throws(\InvalidArgumentException::class, 'Unsupported file format');
+})->throws(InvalidArgumentException::class, 'Unsupported file format');
 
 it('throws exception when spec file is not readable', function () {
     $tempFile = sys_get_temp_dir().'/openapi_'.uniqid().'.yaml';
@@ -318,5 +318,5 @@ it('throws exception when spec file is not readable', function () {
         chmod($tempFile, 0644);
         unlink($tempFile);
     }
-})->throws(\InvalidArgumentException::class, 'Spec file is not readable')
+})->throws(InvalidArgumentException::class, 'Spec file is not readable')
     ->skipOnWindows();

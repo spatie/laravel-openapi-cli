@@ -65,7 +65,7 @@ afterEach(function () {
     if (isset($this->testFile2) && file_exists($this->testFile2)) {
         unlink($this->testFile2);
     }
-    \Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
+    Spatie\OpenApiCli\OpenApiCli::clearRegistrations();
 });
 
 it('uploads a file using @ prefix', function () {

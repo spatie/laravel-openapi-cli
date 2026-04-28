@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Console\Command;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\CommandConfiguration;
@@ -54,7 +55,7 @@ it('calls onError callback with Response and Command instances', function () {
         ->onError(function ($response, $command) use (&$callbackInvoked) {
             $callbackInvoked = true;
             expect($response)->toBeInstanceOf(Response::class);
-            expect($command)->toBeInstanceOf(\Illuminate\Console\Command::class);
+            expect($command)->toBeInstanceOf(Command::class);
             expect($response->status())->toBe(403);
 
             return true;

@@ -247,7 +247,7 @@ it('throws RuntimeException on HTTP failure', function () {
     ]);
 
     SpecResolver::resolve('https://api.example.com/spec.yaml');
-})->throws(\RuntimeException::class, 'Failed to fetch remote spec');
+})->throws(RuntimeException::class, 'Failed to fetch remote spec');
 
 it('throws RuntimeException on server error', function () {
     Http::fake([
@@ -255,7 +255,7 @@ it('throws RuntimeException on server error', function () {
     ]);
 
     SpecResolver::resolve('https://api.example.com/spec.yaml');
-})->throws(\RuntimeException::class, 'Failed to fetch remote spec');
+})->throws(RuntimeException::class, 'Failed to fetch remote spec');
 
 it('uses content-hash-based temp file names for same content', function () {
     $yamlContent = "openapi: 3.0.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}";
