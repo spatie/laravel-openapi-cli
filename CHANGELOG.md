@@ -2,6 +2,12 @@
 
 All notable changes to `laravel-openapi-cli` will be documented in this file.
 
+## 1.3.0 - 2026-05-22
+
+- Add `retryOn()` hook to re-issue a request after a >= 400 response (e.g. refresh an expired OAuth token on 401 and retry once)
+
+**Full Changelog**: https://github.com/spatie/laravel-openapi-cli/compare/1.2.0...1.3.0
+
 ## 1.2.0 - 2026-04-28
 
 ### What's Changed
