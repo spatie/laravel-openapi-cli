@@ -57,12 +57,29 @@ class EndpointCommand extends Command
             return self::FAILURE;
         }
 
-        $response = $this->sendRequest($url, $input['fields'], $input['files'], $input['jsonData']);
-        if ($response === null) {
-            return self::FAILURE;
-        }
+        $retry = $this->config->getRetryCallable();
+        $maxRetries = $this->config->getRetryMaxRetries();
+        $retries = 0;
 
-        return $this->processResponse($response);
+        while (true) {
+            $response = $this->sendRequest($url, $input['fields'], $input['files'], $input['jsonData']);
+            if ($response === null) {
+                return self::FAILURE;
+            }
+
+            if (
+                $retry !== null
+                && $response->status() >= 400
+                && $retries < $maxRetries
+                && $retry($response, $this)
+            ) {
+                $retries++;
+
+                continue;
+            }
+
+            return $this->processResponse($response);
+        }
     }
 
     protected function validatePathParameters(): bool

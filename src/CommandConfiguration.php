@@ -22,6 +22,11 @@ class CommandConfiguration
     /** @var callable|null */
     protected $onErrorCallable = null;
 
+    /** @var callable|null */
+    protected $retryCallable = null;
+
+    protected int $retryMaxRetries = 0;
+
     /** @var string|callable|null */
     protected $banner = null;
 
@@ -145,6 +150,24 @@ class CommandConfiguration
     public function getOnErrorCallable(): ?callable
     {
         return $this->onErrorCallable;
+    }
+
+    public function retryOn(callable $callable, int $maxRetries = 1): self
+    {
+        $this->retryCallable = $callable;
+        $this->retryMaxRetries = max(0, $maxRetries);
+
+        return $this;
+    }
+
+    public function getRetryCallable(): ?callable
+    {
+        return $this->retryCallable;
+    }
+
+    public function getRetryMaxRetries(): int
+    {
+        return $this->retryMaxRetries;
     }
 
     public function banner(string|callable $banner): self

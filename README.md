@@ -22,7 +22,7 @@ use Spatie\OpenApiCli\Facades\OpenApiCli;
 
 OpenApiCli::register('https://api.bookstore.io/openapi.yaml', 'bookstore')
     ->baseUrl('https://api.bookstore.io')
-    ->bearer(env('BOOKSTORE_TOKEN'))
+    ->auth(fn () => app(OAuthTokenManager::class)->token())
     ->banner('Bookstore API v2')
     ->cache(ttl: 600)
     ->followRedirects()
@@ -34,7 +34,14 @@ OpenApiCli::register('https://api.bookstore.io/openapi.yaml', 'bookstore')
             429 => $command->warn('Rate limited. Retry after '.$response->header('Retry-After').'s.'),
             default => false,
         };
-    });
+    })
+    ->retryOn(function (Response $response, Command $command) {
+        if ($response->status() !== 401) {
+            return false;
+        }
+
+        return app(OAuthTokenManager::class)->refresh();
+    }, maxRetries: 1);
 ```
 
 For a spec with `GET /books`, `POST /books`, `GET /books/{book_id}/reviews`, and `DELETE /books/{book_id}`, you get these commands:
