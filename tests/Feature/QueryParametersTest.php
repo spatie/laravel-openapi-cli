@@ -224,6 +224,54 @@ it('shows enum values in option description', function () {
     unlink($specPath);
 });
 
+it('handles query parameters with multi-line descriptions', function () {
+    $spec = [
+        'openapi' => '3.0.0',
+        'info' => ['title' => 'Test API', 'version' => '1.0.0'],
+        'servers' => [
+            ['url' => 'https://api.example.com'],
+        ],
+        'paths' => [
+            '/items' => [
+                'get' => [
+                    'summary' => 'List items',
+                    'parameters' => [
+                        [
+                            'name' => 'order',
+                            'in' => 'query',
+                            // Multi-line, free-form Markdown description (valid per
+                            // the OpenAPI spec). The newlines must not cause the
+                            // option to be dropped while parsing the signature.
+                            'description' => "Order the results.\n\nPrefix with `-` for descending order.\n\nDefaults to ascending.",
+                            'schema' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $specPath = sys_get_temp_dir().'/test_spec_multiline_'.uniqid().'.json';
+    file_put_contents($specPath, json_encode($spec));
+
+    Http::fake([
+        'https://api.example.com/items*' => Http::response(['data' => []], 200),
+    ]);
+
+    OpenApiCli::register($specPath, 'test-api');
+
+    $this->artisan('test-api:get-items', [
+        '--order' => 'created_at',
+    ])->assertSuccessful();
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), 'order=created_at')
+            && $request->method() === 'GET';
+    });
+
+    unlink($specPath);
+});
+
 it('works with POST requests and query parameters', function () {
     Http::fake([
         'https://api.example.com/projects*' => Http::response(['data' => 'created'], 201),
