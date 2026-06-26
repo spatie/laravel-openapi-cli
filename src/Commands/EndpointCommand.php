@@ -300,7 +300,7 @@ class EndpointCommand extends Command
                 if (isset($param['schema']['enum'])) {
                     $description .= ' ['.implode(', ', $param['schema']['enum']).']';
                 }
-                $parts[] = "{--{$optionName}= : {$description}}";
+                $parts[] = "{--{$optionName}= : {$this->sanitizeDescription($description)}}";
             });
 
         $parameters
@@ -313,7 +313,7 @@ class EndpointCommand extends Command
                 if (isset($param['schema']['enum'])) {
                     $description .= ' ['.implode(', ', $param['schema']['enum']).']';
                 }
-                $parts[] = "{--{$optionName}= : {$description}}";
+                $parts[] = "{--{$optionName}= : {$this->sanitizeDescription($description)}}";
             });
 
         $parts = array_merge($parts, [
@@ -327,6 +327,22 @@ class EndpointCommand extends Command
         ]);
 
         $this->signature = implode("\n            ", $parts);
+    }
+
+    /**
+     * Make an OpenAPI description safe to embed in a console signature.
+     *
+     * Signatures are a single-line mini-language in which `{`, `}` and
+     * newlines are significant. OpenAPI descriptions are free-form Markdown
+     * and may legitimately contain any of these (e.g. multi-line text), which
+     * would otherwise cause the option to be silently dropped while parsing
+     * the signature, leading to an "option does not exist" error at runtime.
+     */
+    private function sanitizeDescription(string $description): string
+    {
+        $description = str_replace(['{', '}'], '', $description);
+
+        return trim((string) preg_replace('/\s+/', ' ', $description));
     }
 
     protected function resolveBaseUrl(): string
