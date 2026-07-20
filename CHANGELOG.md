@@ -2,6 +2,12 @@
 
 All notable changes to `laravel-openapi-cli` will be documented in this file.
 
+## 1.4.0 - 2026-07-20
+
+- Add `AuthenticationException` that `auth()` and `retryOn()` closures can throw to abort a command with a friendly message (and optional hint) before a request is sent
+
+**Full Changelog**: https://github.com/spatie/laravel-openapi-cli/compare/1.3.1...1.4.0
+
 ## 1.3.1 - 2026-06-26
 
 ### What's Changed
