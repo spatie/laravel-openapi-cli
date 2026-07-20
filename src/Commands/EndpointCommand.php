@@ -11,6 +11,7 @@ use JsonException;
 use RuntimeException;
 use Spatie\OpenApiCli\CommandConfiguration;
 use Spatie\OpenApiCli\CommandNameGenerator;
+use Spatie\OpenApiCli\Exceptions\AuthenticationException;
 use Spatie\OpenApiCli\HumanReadableFormatter;
 use Spatie\OpenApiCli\OpenApiParser;
 use Spatie\OpenApiCli\OutputHighlighter;
@@ -61,24 +62,34 @@ class EndpointCommand extends Command
         $maxRetries = $this->config->getRetryMaxRetries();
         $retries = 0;
 
-        while (true) {
-            $response = $this->sendRequest($url, $input['fields'], $input['files'], $input['jsonData']);
-            if ($response === null) {
-                return self::FAILURE;
+        try {
+            while (true) {
+                $response = $this->sendRequest($url, $input['fields'], $input['files'], $input['jsonData']);
+                if ($response === null) {
+                    return self::FAILURE;
+                }
+
+                if (
+                    $retry !== null
+                    && $response->status() >= 400
+                    && $retries < $maxRetries
+                    && $retry($response, $this)
+                ) {
+                    $retries++;
+
+                    continue;
+                }
+
+                return $this->processResponse($response);
+            }
+        } catch (AuthenticationException $exception) {
+            $this->error($exception->getMessage());
+
+            if ($exception->hint !== null) {
+                $this->line($exception->hint);
             }
 
-            if (
-                $retry !== null
-                && $response->status() >= 400
-                && $retries < $maxRetries
-                && $retry($response, $this)
-            ) {
-                $retries++;
-
-                continue;
-            }
-
-            return $this->processResponse($response);
+            return self::FAILURE;
         }
     }
 
