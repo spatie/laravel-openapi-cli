@@ -46,7 +46,7 @@ class SpecResolver
         $extension = static::detectExtension($url, $response->header('Content-Type'), $content);
 
         if ($useCache) {
-            $ttl = $config?->getCacheTtl() ?? 60;
+            $ttl = $config->getCacheTtl();
 
             Cache::store($cacheStore)->put($cacheKey, [
                 'content' => $content,
