@@ -16,6 +16,7 @@ use Spatie\OpenApiCli\HumanReadableFormatter;
 use Spatie\OpenApiCli\OpenApiParser;
 use Spatie\OpenApiCli\OutputHighlighter;
 use Spatie\OpenApiCli\SpecResolver;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Terminal;
 use Symfony\Component\Yaml\Yaml;
 
@@ -647,24 +648,30 @@ class EndpointCommand extends Command
         $this->outputLines($highlighter->highlightHumanReadable($formatter->format($decoded)));
     }
 
+    /**
+     * A body we cannot pretty-print is written through untouched: no preamble,
+     * no trailing newline, and no formatter. Anything else ends up inside the
+     * file when the caller redirects, which is how downloading an image through
+     * a generated command produced a corrupt one.
+     */
     protected function outputNonJsonResponse(Response $response, string $body): void
     {
         $contentType = $response->header('Content-Type') ?: 'unknown';
-        $contentLength = $response->header('Content-Length') ?: strlen($body);
-        $this->line("Response is not JSON (content-type: {$contentType}, status: {$response->status()}, content-length: {$contentLength})");
-        $this->line('');
 
         if (str_contains($contentType, 'text/html')) {
             if (! $this->option('output-html')) {
                 if (! $this->config->shouldShowHtmlBody()) {
-                    $this->line('Use --output-html to see the full response body.');
+                    $contentLength = $response->header('Content-Length') ?: strlen($body);
+                    $this->line("HTML response (status: {$response->status()}, content-length: {$contentLength}). Use --output-html to see it.");
 
                     return;
                 }
             }
         }
 
-        $this->line($body);
+        // OUTPUT_RAW keeps Symfony's formatter from reading `<...>` in the body
+        // as style tags, which mangles binary content and can throw on it.
+        $this->output->write($body, false, OutputInterface::OUTPUT_RAW);
     }
 
     protected function outputLines(string $content): void

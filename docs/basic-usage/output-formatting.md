@@ -98,15 +98,21 @@ php artisan bookstore:get-books --headers
 When an API returns HTML (e.g., an error page), the body is hidden by default to avoid flooding the terminal. You'll see a hint instead:
 
 ```
-Response is not JSON (content-type: text/html, status: 500, content-length: 1234)
-
-Use --output-html to see the full response body.
+HTML response (status: 500, content-length: 1234). Use --output-html to see it.
 ```
 
 Pass `--output-html` to show the body:
 
 ```bash
 php artisan bookstore:get-books --output-html
+```
+
+## Binary and other non-JSON responses
+
+Anything else that isn't JSON is written straight through: no notice, no trailing newline, and no formatting. So an endpoint that returns a file can be redirected into one:
+
+```bash
+php artisan bookstore:get-book-cover --book=1 > cover.png
 ```
 
 To always show HTML bodies for a specific registration, use the `showHtmlBody()` config method:

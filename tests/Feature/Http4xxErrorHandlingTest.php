@@ -173,8 +173,7 @@ it('displays non-JSON 4xx error responses with suppressed HTML body and hint', f
     $this->artisan('test-api:get-projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 400 Error')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 400')
-        ->expectsOutputToContain('Use --output-html to see the full response body.')
+        ->expectsOutputToContain('Use --output-html to see it.')
         ->doesntExpectOutputToContain('<h1>400 Bad Request</h1>');
 });
 

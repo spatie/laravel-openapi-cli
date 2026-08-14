@@ -5,7 +5,7 @@ weight: 1
 
 ## Default error handling
 
-- **4xx/5xx errors**: Displays the status code and response body in human-readable format by default (or JSON with `--json`, minified with `--minify`). HTML responses suppress the body by default (use `--output-html` to see it). Other non-JSON responses show the raw body with a content-type notice.
+- **4xx/5xx errors**: Displays the status code and response body in human-readable format by default (or JSON with `--json`, minified with `--minify`). HTML responses suppress the body by default (use `--output-html` to see it). Other non-JSON responses are written through unchanged, so they can be redirected to a file.
 - **Network errors**: Shows connection failure details.
 - **Missing path parameters**: Tells you which `--option` is required.
 - **Invalid JSON input**: Shows the parse error.
