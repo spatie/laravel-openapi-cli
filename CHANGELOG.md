@@ -2,6 +2,22 @@
 
 All notable changes to `laravel-openapi-cli` will be documented in this file.
 
+## 1.5.0 - 2026-08-14
+
+### Non-JSON response bodies are written through untouched
+
+A response body that could not be pretty-printed used to get a `Response is not JSON (content-type: ..., status: ...)` line, a blank line, a trailing newline, and a pass through Symfony's output formatter. All of that landed in the file when the output was redirected, so an endpoint returning a file could not be saved:
+
+```bash
+php artisan api:download-report > report.pdf   # was corrupt, now valid
+
+```
+The body is now written raw: no notice, no added newline, no formatting. Any `<...>` sequence in binary data survives instead of being read as a style tag.
+
+The one remaining notice is for an HTML body you have not asked to see, which prints no body at all. Its wording changed to `HTML response (status: 500, content-length: 1234). Use --output-html to see it.`
+
+If you relied on the old notice appearing in output, that is the breaking bit; everything else is unchanged.
+
 ## 1.4.1 - 2026-08-07
 
 ### What's Changed
