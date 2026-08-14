@@ -167,8 +167,7 @@ it('displays non-JSON 5xx error responses with suppressed HTML body and hint', f
     $this->artisan('test-api:get-projects')
         ->assertFailed()
         ->expectsOutputToContain('HTTP 500 Error')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 500')
-        ->expectsOutputToContain('Use --output-html to see the full response body.')
+        ->expectsOutputToContain('Use --output-html to see it.')
         ->doesntExpectOutputToContain('<h1>500 Internal Server Error</h1>');
 });
 

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Spatie\OpenApiCli\Facades\OpenApiCli;
 
@@ -383,8 +384,7 @@ it('suppresses HTML body for non-JSON responses by default', function () {
     OpenApiCli::register($this->specFile, 'test-api');
 
     $this->artisan('test-api:get-html-response')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 200')
-        ->expectsOutputToContain('Use --output-html to see the full response body.')
+        ->expectsOutputToContain('Use --output-html to see it.')
         ->doesntExpectOutputToContain('<html><body>Hello World</body></html>')
         ->assertSuccessful();
 });
@@ -397,9 +397,26 @@ it('outputs raw body for non-JSON responses (plain text)', function () {
     OpenApiCli::register($this->specFile, 'test-api');
 
     $this->artisan('test-api:get-plain-text')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/plain, status: 200')
         ->expectsOutputToContain('This is plain text content')
         ->assertSuccessful();
+});
+
+it('writes a binary body byte for byte so it can be redirected to a file', function () {
+    // A real PNG header, plus bytes the console formatter would otherwise read
+    // as style tags and swallow.
+    $png = "\x89PNG\r\n\x1a\n".'<info>not a tag</info>'."\x00\xFF\x01";
+
+    Http::fake([
+        'https://api.example.com/plain-text' => Http::response($png, 200, ['Content-Type' => 'image/png']),
+    ]);
+
+    OpenApiCli::register($this->specFile, 'test-api');
+
+    $this->withoutMockingConsoleOutput();
+    $this->registerOpenApiCommands();
+
+    expect(Artisan::call('test-api:get-plain-text'))->toBe(0)
+        ->and(Artisan::output())->toBe($png);
 });
 
 it('outputs raw body for invalid JSON', function () {
@@ -410,7 +427,6 @@ it('outputs raw body for invalid JSON', function () {
     OpenApiCli::register($this->specFile, 'test-api');
 
     $this->artisan('test-api:get-projects')
-        ->expectsOutputToContain('Response is not JSON (content-type: application/json, status: 200')
         ->expectsOutputToContain('{"invalid": json content}')
         ->assertSuccessful();
 });
@@ -423,8 +439,7 @@ it('suppresses HTML body for non-JSON responses even with --minify flag', functi
     OpenApiCli::register($this->specFile, 'test-api');
 
     $this->artisan('test-api:get-html-response', ['--minify' => true])
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 200')
-        ->expectsOutputToContain('Use --output-html to see the full response body.')
+        ->expectsOutputToContain('Use --output-html to see it.')
         ->doesntExpectOutputToContain('<html><body>Hello</body></html>')
         ->assertSuccessful();
 });
@@ -586,9 +601,8 @@ it('shows HTML body when --output-html flag is passed', function () {
     OpenApiCli::register($this->specFile, 'test-api');
 
     $this->artisan('test-api:get-html-response', ['--output-html' => true])
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 200')
         ->expectsOutputToContain('<html><body>Hello World</body></html>')
-        ->doesntExpectOutputToContain('Use --output-html to see the full response body.')
+        ->doesntExpectOutputToContain('Use --output-html to see it.')
         ->assertSuccessful();
 });
 
@@ -601,9 +615,8 @@ it('shows HTML body when showHtmlBody config is enabled', function () {
         ->showHtmlBody();
 
     $this->artisan('test-api:get-html-response')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/html, status: 200')
         ->expectsOutputToContain('<html><body>Hello World</body></html>')
-        ->doesntExpectOutputToContain('Use --output-html to see the full response body.')
+        ->doesntExpectOutputToContain('Use --output-html to see it.')
         ->assertSuccessful();
 });
 
@@ -615,9 +628,8 @@ it('still shows plain text non-JSON responses by default', function () {
     OpenApiCli::register($this->specFile, 'test-api');
 
     $this->artisan('test-api:get-plain-text')
-        ->expectsOutputToContain('Response is not JSON (content-type: text/plain, status: 200')
         ->expectsOutputToContain('This is plain text content')
-        ->doesntExpectOutputToContain('Use --output-html to see the full response body.')
+        ->doesntExpectOutputToContain('Use --output-html to see it.')
         ->assertSuccessful();
 });
 
