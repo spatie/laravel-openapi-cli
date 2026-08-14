@@ -32,6 +32,9 @@ class CommandConfiguration
 
     protected bool $useOperationIds = false;
 
+    /** @var array<int, string|callable> */
+    protected array $excluded = [];
+
     protected bool $cacheEnabled = false;
 
     protected int $cacheTtl = 60;
@@ -192,6 +195,42 @@ class CommandConfiguration
     public function shouldUseOperationIds(): bool
     {
         return $this->useOperationIds;
+    }
+
+    /**
+     * Keep operations out of the generated command set, so the application can
+     * ship a hand-written command for them instead. Pass command names, or a
+     * callable receiving (string $method, string $path, array $operationData).
+     *
+     * @param  string|callable|array<int, string|callable>  $operations
+     */
+    public function exclude(string|callable|array $operations): self
+    {
+        $this->excluded = [...$this->excluded, ...(is_array($operations) ? $operations : [$operations])];
+
+        return $this;
+    }
+
+    /**
+     * @param  array<string, mixed>  $operationData
+     */
+    public function isExcluded(string $commandName, string $method, string $path, array $operationData): bool
+    {
+        foreach ($this->excluded as $excluded) {
+            if (is_callable($excluded)) {
+                if ($excluded($method, $path, $operationData)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if ($excluded === $commandName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function cache(int $ttl = 60, ?string $store = null, string $prefix = 'openapi-cli-spec:'): self

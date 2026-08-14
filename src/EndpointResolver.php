@@ -25,13 +25,23 @@ class EndpointResolver
 
         $suffixCounts = $endpoints->countBy('commandSuffix');
 
-        return $endpoints->map(function (array $endpoint) use ($suffixCounts) {
-            if ($suffixCounts->get($endpoint['commandSuffix']) > 1) {
-                $endpoint['commandSuffix'] = CommandNameGenerator::fromPathDisambiguated($endpoint['method'], $endpoint['path']);
-            }
+        return $endpoints
+            ->map(function (array $endpoint) use ($suffixCounts) {
+                if ($suffixCounts->get($endpoint['commandSuffix']) > 1) {
+                    $endpoint['commandSuffix'] = CommandNameGenerator::fromPathDisambiguated($endpoint['method'], $endpoint['path']);
+                }
 
-            return $endpoint;
-        });
+                return $endpoint;
+            })
+            // After disambiguation, so an exclusion by name matches the name the
+            // command would actually have been registered under.
+            ->reject(fn (array $endpoint) => $config->isExcluded(
+                $endpoint['commandSuffix'],
+                $endpoint['method'],
+                $endpoint['path'],
+                $endpoint['operationData'],
+            ))
+            ->values();
     }
 
     /**
