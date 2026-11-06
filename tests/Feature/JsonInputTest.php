@@ -121,7 +121,9 @@ it('validates JSON syntax and shows error for invalid JSON', function () {
         '--input' => '{"name":"Test"',
     ])
         ->assertFailed()
-        ->expectsOutput('Invalid JSON input: Syntax error');
+        ->expectsOutput(PHP_VERSION_ID >= 80600
+            ? 'Invalid JSON input: Syntax error near location 1:15'
+            : 'Invalid JSON input: Syntax error');
 
     Http::assertNothingSent();
 });
