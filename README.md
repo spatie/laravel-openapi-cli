@@ -60,6 +60,14 @@ We invest a lot of resources into creating [best in class open source packages](
 
 We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
 
+## Requirements
+
+This package requires PHP 8.4.1 or newer and Laravel 13. It uses Symfony YAML 8.1 or newer within the 8.x series for parsing specs and formatting YAML output.
+
+Laravel 11, Laravel 12, and PHP 8.4.0 are no longer supported. Applications using those versions can stay on version 1.5.0.
+
+YAML mapping keys must be unique, including when the earlier value is `null`. Symfony YAML 8 rejects duplicate keys instead of accepting that invalid YAML.
+
 ## Documentation
 
 All documentation is available [on our documentation site](https://spatie.be/docs/laravel-openapi-cli).

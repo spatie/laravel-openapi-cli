@@ -174,6 +174,24 @@ YAML
     }
 })->throws(InvalidArgumentException::class);
 
+it('rejects duplicate YAML mapping keys even when the first value is null', function () {
+    $tempFile = sys_get_temp_dir().'/openapi_'.uniqid().'.yaml';
+    file_put_contents($tempFile, <<<'YAML'
+openapi: 3.1.0
+info:
+  title: null
+  title: Test API
+paths: {}
+YAML
+    );
+
+    try {
+        new OpenApiParser($tempFile);
+    } finally {
+        unlink($tempFile);
+    }
+})->throws(InvalidArgumentException::class, 'Failed to parse YAML file: Duplicate key "title"');
+
 it('can get the full spec', function () {
     $parser = new OpenApiParser(__DIR__.'/../../flare-api.yaml');
     $spec = $parser->getSpec();

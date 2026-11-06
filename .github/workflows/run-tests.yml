@@ -22,19 +22,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         php: [8.6, 8.5, 8.4]
-        # Laravel 11 releases are blocked by Composer security advisories.
-        laravel: [13.*, 12.*]
+        laravel: [13.*]
         stability: [prefer-lowest, prefer-stable]
         include:
           - laravel: 13.*
             testbench: 11.*
-          - laravel: 12.*
-            testbench: 10.*
-        exclude:
-          # Pest 4's PHPUnit 12-compatible ParaTest releases exclude PHP 8.6;
-          # Pest's Laravel plugin 5 requires Laravel 13.
-          - php: 8.6
-            laravel: 12.*
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
 
@@ -56,13 +48,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer require --dev "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: List Installed Dependencies
         run: |
           php --version
           composer show
+
+      - name: Validate dependencies
+        run: |
+          composer validate --strict
+          composer check-platform-reqs
+          composer audit
 
       - name: Execute tests
         run: vendor/bin/pest --ci --display-deprecations
