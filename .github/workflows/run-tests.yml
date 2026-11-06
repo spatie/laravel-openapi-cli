@@ -30,6 +30,11 @@ jobs:
             testbench: 11.*
           - laravel: 12.*
             testbench: 10.*
+        exclude:
+          # Pest 4's PHPUnit 12-compatible ParaTest releases exclude PHP 8.6;
+          # Pest's Laravel plugin 5 requires Laravel 13.
+          - php: 8.6
+            laravel: 12.*
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
 
